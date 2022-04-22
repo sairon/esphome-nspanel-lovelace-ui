@@ -31,7 +31,6 @@ Then initialize the `nspanel_lovelace` component:
 ```yaml
 nspanel_lovelace:
   id: nspanel
-  enable_upload: true
 
   on_incoming_msg:
     then:
@@ -43,8 +42,6 @@ nspanel_lovelace:
 
 Options:
  - `id`: ID of the component used in lambdas
- - `enable_upload`: enable `upload_tft(url)` method for updating the Nextion firmware 
-   (not using it may save some flash space)
  - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on touch event)
 
 To handle messages received via MQTT from the AppDaemon, `mqtt` component with a `on_message` handler must be defined:

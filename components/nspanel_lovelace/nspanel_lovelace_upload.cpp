@@ -1,7 +1,5 @@
 #include "nspanel_lovelace.h"
 
-#ifdef USE_NSPANEL_LOVELACE_UPLOAD
-
 #include "esphome/core/application.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/util.h"
@@ -284,5 +282,3 @@ void NSPanelLovelace::upload_end_() {
 }
 }  // namespace nspanel_lovelace
 }  // namespace esphome
-
-#endif // USE_NSPANEL_LOVELACE_UPLOAD

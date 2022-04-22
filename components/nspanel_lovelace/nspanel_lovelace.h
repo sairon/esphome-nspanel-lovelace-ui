@@ -9,9 +9,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 
-#ifdef USE_NSPANEL_LOVELACE_UPLOAD
 #include <HTTPClient.h>
-#endif
 
 #ifdef USE_TIME
 #include "esphome/components/time/real_time_clock.h"
@@ -44,7 +42,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
 
   void exit_reparse_mode();
 
-  #ifdef USE_NSPANEL_LOVELACE_UPLOAD
   /**
    * Set the tft file URL. https seems problamtic with arduino..
    */
@@ -54,7 +51,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
    * Upload the tft file and softreset the Nextion
    */
   void upload_tft(const std::string &url);
-  #endif
 
  protected:
   static uint16_t crc16(const uint8_t *data, uint16_t len);
@@ -71,7 +67,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   bool is_updating_ = false;
   bool reparse_mode_ = false;
 
-  #ifdef USE_NSPANEL_LOVELACE_UPLOAD
   std::string tft_url_;
   uint8_t *transfer_buffer_{nullptr};
   size_t transfer_buffer_size_;
@@ -89,7 +84,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   int upload_by_chunks_(HTTPClient *http, const std::string &url, int range_start);
 
   void upload_end_();
-  #endif
 };
 
 

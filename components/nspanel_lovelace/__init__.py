@@ -12,8 +12,6 @@ AUTO_LOAD = ["text_sensor"]
 CODEOWNERS = ["@sairon"]
 DEPENDENCIES = ["uart", "wifi", "esp32"]
 
-CONF_ENABLE_UPLOAD = "enable_upload"
-
 nspanel_lovelace_ns = cg.esphome_ns.namespace("nspanel_lovelace")
 NSPanelLovelace = nspanel_lovelace_ns.class_("NSPanelLovelace", cg.Component, uart.UARTDevice)
 
@@ -30,7 +28,6 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(NSPanelLovelace),
-            cv.Optional(CONF_ENABLE_UPLOAD, default=False): cv.All(cv.boolean, cv.only_with_arduino),
             cv.Required(CONF_INCOMING_MSG): automation.validate_automation(
                 cv.Schema(
                     {
@@ -55,9 +52,6 @@ async def to_code(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
 
-    if CONF_ENABLE_UPLOAD in config:
-        cg.add_library("WiFiClientSecure", None)
-        cg.add_library("HTTPClient", None)
-        cg.add_define("USE_NSPANEL_LOVELACE_UPLOAD")
-
+    cg.add_library("WiFiClientSecure", None)
+    cg.add_library("HTTPClient", None)
     cg.add_define("USE_NSPANEL_LOVELACE")
