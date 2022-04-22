@@ -9,7 +9,7 @@ from esphome.const import (
 )
 
 AUTO_LOAD = ["text_sensor"]
-CODEOWNERS = ["@joBr99"]
+CODEOWNERS = ["@sairon"]
 DEPENDENCIES = ["uart", "wifi", "esp32"]
 
 CONF_ENABLE_UPLOAD = "enable_upload"
