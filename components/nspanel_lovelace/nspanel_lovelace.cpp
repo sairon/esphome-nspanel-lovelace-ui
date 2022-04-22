@@ -73,7 +73,7 @@ bool NSPanelLovelace::process_data_() {
   const uint8_t *message_data = data + 4;
   std::string message(message_data, message_data + length);
 
-  ESP_LOGD(TAG, "Received from UI: PAYLOAD=%s RAW=[%s]", data,
+  ESP_LOGD(TAG, "Received from UI: PAYLOAD=%s RAW=[%s]", message.c_str(),
            format_hex_pretty(data, this->buffer_.size()).c_str());
 
   this->process_command_(message);
