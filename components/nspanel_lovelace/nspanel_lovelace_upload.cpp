@@ -52,7 +52,6 @@ int NSPanelLovelace::upload_by_chunks_(HTTPClient *http, const std::string &url,
     ESP_LOGW(TAG, "HTTP Request failed; URL: %s; Error: %s, retries(%d/5)", this->tft_url_.c_str(),
              HTTPClient::errorToString(code).c_str(), tries);
     http->end();
-    App.feed_wdt();
     delay(500);  // NOLINT
   }
 
@@ -62,39 +61,50 @@ int NSPanelLovelace::upload_by_chunks_(HTTPClient *http, const std::string &url,
 
   std::string recv_string;
   size_t size;
-  int sent = 0;
+  int fetched = 0;
   int range = range_end - range_start;
+  int write_len;
 
-  while (sent < range) {
+  // fetch next segment from HTTP stream
+  while (fetched < range) {
     size = http->getStreamPtr()->available();
     if (!size) {
       App.feed_wdt();
-      delay(0);
+      delay(2);
       continue;
     }
     int c = http->getStreamPtr()->readBytes(
-        &this->transfer_buffer_[sent], ((size > this->transfer_buffer_size_) ? this->transfer_buffer_size_ : size));
-    sent += c;
+        &this->transfer_buffer_[fetched], ((size > this->transfer_buffer_size_) ? this->transfer_buffer_size_ : size));
+    fetched += c;
   }
   http->end();
-  ESP_LOGD(TAG, "this->content_length_ %d sent %d", this->content_length_, sent);
+  ESP_LOGD(TAG, "fetched %d bytes", fetched);
+
+  // upload fetched segments to the display in 4KB chunks
   for (int i = 0; i < range; i += 4096) {
-    this->write_array(&this->transfer_buffer_[i], 4096);
-    this->content_length_ -= 4096;
-    ESP_LOGD(TAG, "this->content_length_ %d range %d range_end %d range_start %d", this->content_length_, range,
-             range_end, range_start);
+    App.feed_wdt();
+    write_len = this->content_length_ < 4096 ? this->content_length_ : 4096;
+    this->write_array(&this->transfer_buffer_[i], write_len);
+    this->content_length_ -= write_len;
+    ESP_LOGD(TAG, "Uploaded %0.1f %%, remaining %d B",
+             100.0 * (this->tft_size_ - this->content_length_) / this->tft_size_, this->content_length_);
 
     if (!this->upload_first_chunk_sent_) {
       this->upload_first_chunk_sent_ = true;
       delay(500);  // NOLINT
-      App.feed_wdt();
     }
 
-    this->recv_ret_string_(recv_string, 2048, true);
-    if (recv_string[0] == 0x08) {
+    this->recv_ret_string_(recv_string, 5000, true);
+    if (recv_string[0] != 0x05) { // 0x05 == "ok"
+      ESP_LOGD(TAG, "recv_string [%s]",
+               format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()), recv_string.size()).c_str());
+    }
+
+    // handle partial upload request
+    if (recv_string[0] == 0x08 && recv_string.size() == 5) {
       uint32_t result = 0;
-      for (int i = 0; i < 4; ++i) {
-        result += static_cast<uint8_t>(recv_string[i + 1]) << (8 * i);
+      for (int j = 0; j < 4; ++j) {
+        result += static_cast<uint8_t>(recv_string[j + 1]) << (8 * j);
       }
       if (result > 0) {
         ESP_LOGD(TAG, "Nextion reported new range %d", result);
@@ -102,6 +112,7 @@ int NSPanelLovelace::upload_by_chunks_(HTTPClient *http, const std::string &url,
         return result;
       }
     }
+
     recv_string.clear();
   }
   return range_end + 1;
@@ -150,13 +161,11 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   int code = http.GET();
   delay(100);  // NOLINT
 
-  App.feed_wdt();
   while (code != 200 && code != 206 && tries <= 5) {
     ESP_LOGW(TAG, "HTTP Request failed; URL: %s; Error: %s, retrying (%d/5)", url.c_str(),
              HTTPClient::errorToString(code).c_str(), tries);
 
     delay(250);  // NOLINT
-    App.feed_wdt();
     code = http.GET();
     ++tries;
   }
@@ -179,11 +188,6 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   ESP_LOGD(TAG, "Updating Nextion");
   // The Nextion will ignore the update command if it is sleeping
 
-  this->send_nextion_command("sleep=0");
-  delay(250);  // NOLINT
-
-  App.feed_wdt();
-
   char command[128];
   // Tells the Nextion the content length of the tft file and baud rate it will be sent at
   // Once the Nextion accepts the command it will wait until the file is successfully uploaded
@@ -198,18 +202,13 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
 
   this->send_nextion_command(command);
 
-  App.feed_wdt();
-
   std::string response;
   ESP_LOGD(TAG, "Waiting for upgrade response");
   this->recv_ret_string_(response, 2000, true);  // This can take some time to return
 
   // The Nextion display will, if it's ready to accept data, send a 0x05 byte.
-  ESP_LOGD(TAG, "Upgrade response is %s %zu", response.c_str(), response.length());
-
-  for (size_t i = 0; i < response.length(); i++) {
-    ESP_LOGD(TAG, "Available %d : 0x%02X", i, response[i]);
-  }
+  ESP_LOGD(TAG, "Upgrade response is [%s]",
+           format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str());
 
   if (response.find(0x05) != std::string::npos) {
     ESP_LOGD(TAG, "preparation for tft update done");

@@ -150,7 +150,7 @@ uint16_t NSPanelLovelace::recv_ret_string_(std::string &response, uint32_t timeo
       }
     }
     App.feed_wdt();
-    delay(1);
+    delay(2);
 
     if (exit_flag || ff_flag) {
       break;
