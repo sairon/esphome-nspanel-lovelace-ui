@@ -97,6 +97,9 @@ void NSPanelLovelace::send_nextion_command(const std::string &command) {
 }
 
 void NSPanelLovelace::send_custom_command(const std::string &command) {
+  if (this->is_updating_)
+    return; // don't execute custom commands - UI updates could spoil the upload
+
   ESP_LOGD(TAG, "Sending custom command: %s", command.c_str());
   std::vector<uint8_t> data = {0x55, 0xBB};
   data.push_back(command.length() & 0xFF);
