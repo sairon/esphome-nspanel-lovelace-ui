@@ -1,7 +1,5 @@
 #include "nspanel_lovelace.h"
 
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
-
 #include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/util.h"
@@ -190,5 +188,3 @@ void NSPanelLovelace::exit_reparse_mode() {
 
 }  // namespace nspanel_lovelace
 }  // namespace esphome
-
-#endif  // USE_ESP32_FRAMEWORK_ARDUINO

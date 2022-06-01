@@ -1,14 +1,11 @@
 #include "nspanel_lovelace.h"
 
 #include "esphome/core/application.h"
-#include "esphome/core/defines.h"
 #include "esphome/core/util.h"
 #include "esphome/core/log.h"
 #include "esphome/components/network/util.h"
 
-#ifdef USE_ESP32
 #include <esp_heap_caps.h>
-#endif
 
 namespace esphome {
 namespace nspanel_lovelace {

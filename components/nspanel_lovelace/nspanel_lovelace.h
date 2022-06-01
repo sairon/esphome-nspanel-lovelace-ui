@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
-
 #include <utility>
 
 #include "esphome/components/uart/uart.h"
@@ -89,5 +87,3 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
 
 }  // namespace nspanel_lovelace
 }  // namespace esphome
-
-#endif  // USE_ESP32_FRAMEWORK_ARDUINO
