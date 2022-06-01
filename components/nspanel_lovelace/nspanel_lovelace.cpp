@@ -10,6 +10,8 @@ namespace nspanel_lovelace {
 static const char *const TAG = "nspanel_lovelace";
 
 void NSPanelLovelace::setup() {
+  this->mqtt_->subscribe(
+      this->send_topic_, [this](const std::string &topic, const std::string &payload) { this->send_custom_command(payload); });
 }
 
 void NSPanelLovelace::loop() {
@@ -80,6 +82,9 @@ bool NSPanelLovelace::process_data_() {
 }
 
 void NSPanelLovelace::process_command_(const std::string &message) {
+  this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
+    root["CustomRecv"] = message;
+  });
   this->incoming_msg_callback_.call(message);
 }
 

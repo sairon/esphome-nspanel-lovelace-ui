@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "esphome/components/mqtt/mqtt_client.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -20,6 +21,10 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
  public:
   void setup() override;
   void loop() override;
+
+  void set_mqtt(mqtt::MQTTClientComponent *parent) { mqtt_ = parent; }
+  void set_recv_topic(const std::string &topic) { recv_topic_ = topic; }
+  void set_send_topic(const std::string &topic) { send_topic_ = topic; }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
 
@@ -57,6 +62,10 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
 
   bool process_data_();
   void process_command_(const std::string &message);
+
+  mqtt::MQTTClientComponent *mqtt_;
+  std::string recv_topic_;
+  std::string send_topic_;
 
   CallbackManager<void(std::string)> incoming_msg_callback_;
 

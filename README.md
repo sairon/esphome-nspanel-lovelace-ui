@@ -27,39 +27,28 @@ external_components:
     components: [ nspanel_lovelace ]
 ```
 
-Then initialize the `nspanel_lovelace` component:
-```yaml
-nspanel_lovelace:
-  id: nspanel
-
-  on_incoming_msg:
-    then:
-    - mqtt.publish_json:
-        topic: tele/nspanel/RESULT
-        payload: |-
-          root["CustomRecv"] = x;
-```
-
-Options:
- - `id`: ID of the component used in lambdas
- - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on touch event)
-
-To handle messages received via MQTT from the AppDaemon, `mqtt` component with a `on_message` handler must be defined:
+To handle messages received via MQTT from the AppDaemon, first create the `mqtt` component with the address of your
+MQTT broker:
 ```yaml
 mqtt:
-  id: mqtt_client
   broker: 192.168.1.1
-  on_message:
-    topic: cmnd/nspanel/CustomSend
-    then:
-      - lambda: |-
-          id(nspanel).send_custom_command(x);
 ```
+
+Then initialize the `nspanel_lovelace` component by adding the following line:
+```yaml
+nspanel_lovelace:
+```
+
+There are several options you can use:
+ - `id`: ID of the component used in lambdas
+ - `mqtt_recv_topic`: change if you are using different `panelRecvTopic` in your AppDaemon config
+ - `mqtt_send_topic`: change if you are using different `panelSendTopic` in your AppDaemon config
+ - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
 
 ### TFT firmware update
 
 Firmware of the TFT can be updated using the `upload_tft` function - for that you can create a service that can
-be triggered from the Home Assistant when needed:
+be triggered from the Home Assistant when needed (make sure you have defined an ID for the NSPanel component):
 
 ```yaml
 api:
