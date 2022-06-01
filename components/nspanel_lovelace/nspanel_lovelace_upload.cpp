@@ -15,7 +15,7 @@ static const char *const TAG = "nextion_upload";
 // https://unofficialnextion.com/t/nextion-upload-protocol-v1-2-the-fast-one/1044/2
 
 int NSPanelLovelace::upload_by_chunks_(HTTPClient *http, const std::string &url, int range_start) {
-  int range_end = 0;
+  int range_end;
 
   if (range_start == 0 && this->transfer_buffer_size_ > 16384) {  // Start small at the first run in case of a big skip
     range_end = 16384 - 1;
@@ -32,8 +32,8 @@ int NSPanelLovelace::upload_by_chunks_(HTTPClient *http, const std::string &url,
   ESP_LOGD(TAG, "Requesting range: %s", range_header);
 
   int tries = 1;
-  int code = 0;
-  bool begin_status = false;
+  int code;
+  bool begin_status;
   while (tries <= 5) {
     begin_status = http->begin(url.c_str());
 
@@ -61,7 +61,7 @@ int NSPanelLovelace::upload_by_chunks_(HTTPClient *http, const std::string &url,
   }
 
   std::string recv_string;
-  size_t size = 0;
+  size_t size;
   int sent = 0;
   int range = range_end - range_start;
 

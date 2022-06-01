@@ -114,7 +114,7 @@ void NSPanelLovelace::send_custom_command(const std::string &command) {
 void NSPanelLovelace::soft_reset() { this->send_nextion_command("rest"); }
 
 uint16_t NSPanelLovelace::recv_ret_string_(std::string &response, uint32_t timeout, bool recv_flag) {
-  uint16_t ret = 0;
+  uint16_t ret;
   uint8_t c = 0;
   uint8_t nr_of_ff_bytes = 0;
   uint64_t start;
