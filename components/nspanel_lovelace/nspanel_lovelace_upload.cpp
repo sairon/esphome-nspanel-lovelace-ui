@@ -129,6 +129,7 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
 
   HTTPClient http;
   http.setTimeout(15000);  // Yes 15 seconds.... Helps 8266s along
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   bool begin_status = http.begin(url.c_str());
 
   if (!begin_status) {
