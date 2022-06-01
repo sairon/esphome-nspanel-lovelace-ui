@@ -124,6 +124,11 @@ uint16_t NSPanelLovelace::recv_ret_string_(std::string &response, uint32_t timeo
   start = millis();
 
   while ((timeout == 0 && this->available()) || millis() - start <= timeout) {
+    if (!this->available()) {
+      App.feed_wdt();
+      continue;
+    }
+
     this->read_byte(&c);
     if (c == 0xFF) {
       nr_of_ff_bytes++;
