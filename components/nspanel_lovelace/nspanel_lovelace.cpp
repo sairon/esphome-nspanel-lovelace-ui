@@ -25,7 +25,7 @@ void NSPanelLovelace::loop() {
     this->read_byte(&d);
     this->buffer_.push_back(d);
     if (!this->process_data_()) {
-      ESP_LOGD(TAG, "Received: 0x%02x", d);
+      ESP_LOGW(TAG, "Unparsed data: 0x%02x", d);
       this->buffer_.clear();
     }
   }
@@ -65,9 +65,7 @@ bool NSPanelLovelace::process_data_() {
 
   if (crc16 != calculated_crc16) {
     ESP_LOGW(TAG, "Received invalid message checksum %02X!=%02X", crc16, calculated_crc16);
-//    return false; // FIXME: apparently there's a CRC bug in Nextion FW
-  } else{
-    ESP_LOGD(TAG, "Received valid message checksum %02X==%02X", crc16, calculated_crc16);
+    return false;
   }
 
   const uint8_t *message_data = data + 4;
@@ -115,8 +113,7 @@ void NSPanelLovelace::send_custom_command(const std::string &command) {
   data.push_back((crc >> 8) & 0xFF);
   this->write_array(data);
 
-  ESP_LOGD(TAG, "Sent to UI: PAYLOAD=%s RAW=[%s]", command.c_str(),
-           format_hex_pretty(&data[0], data.size()).c_str());
+  ESP_LOGD(TAG, "Sent to UI: RAW=[%s]", format_hex_pretty(&data[0], data.size()).c_str());
 }
 
 void NSPanelLovelace::soft_reset() { this->send_nextion_command("rest"); }
