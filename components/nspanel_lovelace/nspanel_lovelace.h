@@ -25,6 +25,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void set_mqtt(mqtt::MQTTClientComponent *parent) { mqtt_ = parent; }
   void set_recv_topic(const std::string &topic) { recv_topic_ = topic; }
   void set_send_topic(const std::string &topic) { send_topic_ = topic; }
+  void set_missed_updates_workaround(bool value) { use_missed_updates_workaround_ = value; }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
 
@@ -66,6 +67,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   mqtt::MQTTClientComponent *mqtt_;
   std::string recv_topic_;
   std::string send_topic_;
+  bool use_missed_updates_workaround_ = true;
 
   CallbackManager<void(std::string)> incoming_msg_callback_;
 

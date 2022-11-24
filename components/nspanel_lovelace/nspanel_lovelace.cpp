@@ -10,8 +10,11 @@ namespace nspanel_lovelace {
 static const char *const TAG = "nspanel_lovelace";
 
 void NSPanelLovelace::setup() {
-  this->mqtt_->subscribe(
-      this->send_topic_, [this](const std::string &topic, const std::string &payload) { this->send_custom_command(payload); });
+  this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
+    this->send_custom_command(payload);
+    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
+    if (this->use_missed_updates_workaround_) this->send_custom_command(payload);
+  });
 }
 
 void NSPanelLovelace::loop() {
@@ -71,9 +74,6 @@ bool NSPanelLovelace::process_data_() {
   const uint8_t *message_data = data + 4;
   std::string message(message_data, message_data + length);
 
-  ESP_LOGD(TAG, "Received from UI: PAYLOAD=%s RAW=[%s]", message.c_str(),
-           format_hex_pretty(data, this->buffer_.size()).c_str());
-
   this->process_command_(message);
   this->buffer_.clear();
   return true;
@@ -112,8 +112,6 @@ void NSPanelLovelace::send_custom_command(const std::string &command) {
   data.push_back(crc & 0xFF);
   data.push_back((crc >> 8) & 0xFF);
   this->write_array(data);
-
-  ESP_LOGD(TAG, "Sent to UI: RAW=[%s]", format_hex_pretty(&data[0], data.size()).c_str());
 }
 
 void NSPanelLovelace::soft_reset() { this->send_nextion_command("rest"); }
