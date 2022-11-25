@@ -47,7 +47,7 @@ There are several options you can use:
 - `mqtt_recv_topic`: change if you are using different `panelRecvTopic` in your AppDaemon config
 - `mqtt_send_topic`: change if you are using different `panelSendTopic` in your AppDaemon config
 - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
-- `use_missed_updates_workaround`: use workaround for [missed status updates](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8) - send all commands received from `mqtt_send_topic` to the panel twice, defaults to `true`
+- `use_missed_updates_workaround`: use workaround for [missed status updates](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8) - introduce short delay in internal ESPHome-NSPanel communication. Defaults to `true`, usually there should be no need to disable this option.
 
 ### TFT firmware update
 

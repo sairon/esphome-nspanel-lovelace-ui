@@ -13,7 +13,7 @@ void NSPanelLovelace::setup() {
   this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
     this->send_custom_command(payload);
     // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
-    if (this->use_missed_updates_workaround_) this->send_custom_command(payload);
+    if (this->use_missed_updates_workaround_) delay(75);
   });
 }
 
