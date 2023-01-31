@@ -1,3 +1,4 @@
+#include <regex>
 #include "nspanel_lovelace.h"
 
 #include "esphome/core/application.h"
@@ -192,6 +193,13 @@ void NSPanelLovelace::start_reparse_mode() {
 void NSPanelLovelace::exit_reparse_mode() {
   this->send_nextion_command("recmod=1");
   reparse_mode_ = false;
+}
+
+void NSPanelLovelace::set_baud_rate_(int baud_rate) {
+  // hopefully on NSPanel it should always be an ESP32ArduinoUARTComponent instance
+  auto *uart = reinterpret_cast<uart::ESP32ArduinoUARTComponent *>(this->parent_);
+  uart->set_baud_rate(baud_rate);
+  uart->setup();
 }
 
 }  // namespace nspanel_lovelace

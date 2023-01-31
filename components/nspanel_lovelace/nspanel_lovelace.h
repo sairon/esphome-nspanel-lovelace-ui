@@ -4,6 +4,7 @@
 
 #include "esphome/components/mqtt/mqtt_client.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/uart/uart_component_esp32_arduino.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
@@ -26,6 +27,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void set_recv_topic(const std::string &topic) { recv_topic_ = topic; }
   void set_send_topic(const std::string &topic) { send_topic_ = topic; }
   void set_missed_updates_workaround(bool value) { use_missed_updates_workaround_ = value; }
+  void set_update_baud_rate(unsigned int value) { update_baud_rate_ = value; }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
 
@@ -57,6 +59,8 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void upload_tft(const std::string &url);
 
  protected:
+  void set_baud_rate_(int baud_rate);
+
   static uint16_t crc16(const uint8_t *data, uint16_t len);
 
   uint16_t recv_ret_string_(std::string &response, uint32_t timeout, bool recv_flag);
@@ -68,6 +72,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   std::string recv_topic_;
   std::string send_topic_;
   bool use_missed_updates_workaround_ = true;
+  unsigned int update_baud_rate_;
 
   CallbackManager<void(std::string)> incoming_msg_callback_;
 

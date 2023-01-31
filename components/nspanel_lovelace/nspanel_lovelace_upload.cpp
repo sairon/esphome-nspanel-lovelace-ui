@@ -192,7 +192,7 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   // Tells the Nextion the content length of the tft file and baud rate it will be sent at
   // Once the Nextion accepts the command it will wait until the file is successfully uploaded
   // If it fails for any reason a power cycle of the display will be needed
-  sprintf(command, "whmi-wris %d,%d,1", this->content_length_, this->parent_->get_baud_rate());
+  sprintf(command, "whmi-wris %d,%d,1", this->content_length_, this->update_baud_rate_);
 
   // Clear serial receive buffer
   uint8_t d;
@@ -201,6 +201,13 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   };
 
   this->send_nextion_command(command);
+
+  // Since 115200 is default and the communication wouldn't work even if it was overridden
+  // in the uart component initialization, it should be safe to ignore setting the baud rate
+  // if it's set to 115200. It helps to avoid additional unnecessary HardwareSerial re-init.
+  if (this->update_baud_rate_ != 115200) {
+    this->set_baud_rate_(this->update_baud_rate_);
+  }
 
   std::string response;
   ESP_LOGD(TAG, "Waiting for upgrade response");
