@@ -226,16 +226,11 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
 
   // Nextion wants 4096 bytes at a time. Make chunk_size a multiple of 4096
   uint32_t chunk_size = 8192;
-  if (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) > 0) {
-    chunk_size = this->content_length_;
-  } else {
-    if (ESP.getFreeHeap() > 40960) {  // 32K to keep on hand
-      int chunk = int((ESP.getFreeHeap() - 32768) / 4096);
-      chunk_size = chunk * 4096;
-      chunk_size = chunk_size > 65536 ? 65536 : chunk_size;
-    } else if (ESP.getFreeHeap() < 10240) {
-      chunk_size = 4096;
-    }
+  if (ESP.getFreeHeap() > 40960) {  // 32K to keep on hand
+    chunk_size = ESP.getFreeHeap() - 32768;
+    chunk_size = chunk_size > 65536 ? 65536 : chunk_size;
+  } else if (ESP.getFreeHeap() < 10240) {
+    chunk_size = 4096;
   }
 
 
