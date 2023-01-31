@@ -24,6 +24,19 @@ void NSPanelLovelace::setup() {
                                root["nlui_driver_version"] = this->berry_driver_version_;
                              });
                            });
+
+    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
+                           [this](const std::string &topic, const std::string &payload) {
+                             ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+
+                             // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
+                             // task avoids that. Maybe there is another way?
+                             App.scheduler.set_timeout(
+                                 this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
+                                   ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+                                   this->upload_tft(payload);
+                                 });
+                           });
   }
 }
 
