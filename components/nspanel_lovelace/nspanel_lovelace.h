@@ -26,6 +26,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void set_mqtt(mqtt::MQTTClientComponent *parent) { mqtt_ = parent; }
   void set_recv_topic(const std::string &topic) { recv_topic_ = topic; }
   void set_send_topic(const std::string &topic) { send_topic_ = topic; }
+  void set_berry_driver_version(unsigned int value) { berry_driver_version_ = value; }
   void set_missed_updates_workaround(bool value) { use_missed_updates_workaround_ = value; }
   void set_update_baud_rate(unsigned int value) { update_baud_rate_ = value; }
 
@@ -71,6 +72,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   mqtt::MQTTClientComponent *mqtt_;
   std::string recv_topic_;
   std::string send_topic_;
+  unsigned int berry_driver_version_;
   bool use_missed_updates_workaround_ = true;
   unsigned int update_baud_rate_;
 

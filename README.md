@@ -47,6 +47,7 @@ There are several options you can use:
 - `mqtt_recv_topic`: change if you are using different `panelRecvTopic` in your AppDaemon config
 - `mqtt_send_topic`: change if you are using different `panelSendTopic` in your AppDaemon config
 - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
+- `berry_driver_version`: version of the official Tasmota Berry driver version reported to AppDaemon backend. If set to `0`, automatic updates or notifications about them are effectively disabled. Defaults to `999`.
 - `use_missed_updates_workaround`: use workaround for [missed status updates](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8) - introduce short delay in internal ESPHome-NSPanel communication. Defaults to `true`, usually there should be no need to disable this option.
 - `update_baud_rate`: baud rate to use when updating the TFT firmware, defaults to `921600`. Set to `115200` if you encounter any issues during the updates.
 

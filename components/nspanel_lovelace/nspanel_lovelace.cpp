@@ -16,6 +16,15 @@ void NSPanelLovelace::setup() {
     // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
     if (this->use_missed_updates_workaround_) delay(75);
   });
+
+  if (this->berry_driver_version_ > 0) {
+    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
+                           [this](const std::string &topic, const std::string &payload) {
+                             this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
+                               root["nlui_driver_version"] = this->berry_driver_version_;
+                             });
+                           });
+  }
 }
 
 void NSPanelLovelace::loop() {

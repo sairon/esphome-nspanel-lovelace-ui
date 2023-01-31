@@ -25,6 +25,7 @@ CONF_MQTT_PARENT_ID = "mqtt_parent_id"
 CONF_MQTT_RECV_TOPIC = "mqtt_recv_topic"
 CONF_MQTT_SEND_TOPIC = "mqtt_send_topic"
 CONF_INCOMING_MSG = "on_incoming_msg"
+CONF_BERRY_DRIVER_VERSION = "berry_driver_version"
 CONF_USE_MISSED_UPDATES_WORKAROUND = "use_missed_updates_workaround"
 CONF_UPDATE_BAUD_RATE = "update_baud_rate"
 
@@ -43,6 +44,7 @@ CONFIG_SCHEMA = cv.All(
                     }
                 )
             ),
+            cv.Optional(CONF_BERRY_DRIVER_VERSION, default=999): cv.positive_int,
             cv.Optional(CONF_USE_MISSED_UPDATES_WORKAROUND, default=True): cv.boolean,
             cv.Optional(CONF_UPDATE_BAUD_RATE, default=921600): cv.positive_int,
         }
@@ -62,6 +64,7 @@ async def to_code(config):
     cg.add(var.set_mqtt(mqtt_parent))
     cg.add(var.set_recv_topic(config[CONF_MQTT_RECV_TOPIC]))
     cg.add(var.set_send_topic(config[CONF_MQTT_SEND_TOPIC]))
+    cg.add(var.set_berry_driver_version(config[CONF_BERRY_DRIVER_VERSION]))
     cg.add(var.set_missed_updates_workaround(config[CONF_USE_MISSED_UPDATES_WORKAROUND]))
     cg.add(var.set_update_baud_rate(config[CONF_UPDATE_BAUD_RATE]))
 
