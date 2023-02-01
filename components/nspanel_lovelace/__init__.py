@@ -30,6 +30,15 @@ CONF_USE_MISSED_UPDATES_WORKAROUND = "use_missed_updates_workaround"
 CONF_UPDATE_BAUD_RATE = "update_baud_rate"
 
 
+def validate_config(config):
+    if int(config[CONF_BERRY_DRIVER_VERSION]) > 0:
+        if "CustomSend" not in config[CONF_MQTT_SEND_TOPIC]:
+            # backend uses topic_send.replace("CustomSend", ...) for GetDriverVersion and FlashNextion
+            raise cv.Invalid(f"{CONF_MQTT_SEND_TOPIC} must contain \"CustomSend\" for correct backend compatibility.\n"
+                             f"Either change it or set {CONF_BERRY_DRIVER_VERSION} to 0.")
+    return config
+
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -52,6 +61,7 @@ CONFIG_SCHEMA = cv.All(
         .extend(uart.UART_DEVICE_SCHEMA)
         .extend(cv.COMPONENT_SCHEMA),
     cv.only_with_arduino,
+    validate_config
         )
 
 
