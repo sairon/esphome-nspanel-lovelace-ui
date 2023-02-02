@@ -69,6 +69,39 @@ api:
           id(nspanel).upload_tft(url);
 ```
 
+### Coexistence with Bluetooth components
+
+There is a [known issue](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/21) that some operations,
+especially the TFT firmware update, can become unreliable when components using Bluetooth are enabled
+(like [esp32_ble_tracker](https://esphome.io/components/esp32_ble_tracker.html) or its extension
+[bluetooth_proxy](https://esphome.io/components/bluetooth_proxy.html)). Generally it's recommended
+to disable the Web Server component and do a re-flash using the serial cable if the device was originally
+flashed using ESPHome version older than 2012.12.0. However, this doesn't fix the problem during the TFT update.
+A workaround is to stop the Bluetooth scanning before the upgrade is started. To do that, simply add an ID to
+the `esp32_ble_tracker` component (it's added implicitly with `bluetooth_proxy`, so if you don't have it in
+your configuration, just add it), e.g.:
+
+```yaml
+esp32_ble_tracker:
+  id: ble_tracker
+```
+
+and then modify the `upload_tft` action to call the `stop_scan` action on it before the upload is started:
+
+```yaml
+    - service: upload_tft
+      variables:
+        url: string
+      then:
+        - lambda: |-
+            id(ble_tracker).stop_scan();
+            id(nspanel).upload_tft(url);
+```
+
+Please note that the upgrade will still fail if it is performed from the on-screen notification about new
+firmware version. Unfortunately there is no easy fix for that, in that case it is recommended to avoid
+`auto` or `auto-notify` options for the `updateMode` in the backend configuration.
+
 ### Other functions
 
 There are currently few more public functions which can be useful for debugging or writing custom automations
