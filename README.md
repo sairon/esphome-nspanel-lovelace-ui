@@ -112,7 +112,7 @@ for controlling the display:
 - `start_reparse_mode()`: start Nextion reparse mode (component will also stop handling data from the display)
 - `exit_reparse_mode()`: exit Nextion reparse mode
 
-### Example configuration
+## Example configuration
 
 See the [examples](examples) folder for configuration examples.
 
