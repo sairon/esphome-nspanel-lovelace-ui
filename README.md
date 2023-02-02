@@ -16,14 +16,17 @@ appear.
 
 ## Usage
 
-Add reference to this repository to the `external_components` definitions:
+Add reference to this repository to the `external_components` definitions. Make sure that `ref` is a valid tag
+from the [Releases](https://github.com/sairon/esphome-nspanel-lovelace-ui/tags) page or an existing
+[branch](https://github.com/sairon/esphome-nspanel-lovelace-ui/branches).
+You can use `dev` for the latest bleeding-edge version but be aware that things may break from time to time.
 
 ```yaml
 external_components:
   - source:
       type: git
       url: https://github.com/sairon/esphome-nspanel-lovelace-ui
-      ref: dev
+      ref: release/v0.2.x
     components: [nspanel_lovelace]
 ```
 
@@ -78,22 +81,7 @@ for controlling the display:
 
 ### Example configuration
 
-An example configuration was added on [example-nspanel-config.yml](example-nspanel-config.yml).
-On this configuration, we expose multiple services to Home Assistant:
-
-- upload_tft: Used to upload the firmware to the panel, you just need to add the [URL of the firmware](https://docs.nspanel.pky.eu/prepare_nspanel/#flash-firmware-to-nextion-screen) (only the URL)
-- play_rtttl: play Nokia ringtones on the buzzer of the panel, example `Mario:d=4,o=5,b=100:32p,16e6,16e6,16p,16e6,16p,16c6,16e6,16p,16g6,8p,16p,16g,8p,32p,16c6,8p,16g,8p,16e,8p,16a,16p,16b,16p,16a#,16a,16p,16g,16e6,16g6,16a6,16p,16f6,16g6,16p,16e6,16p,16c6,16d6,16b,p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,8d#6,16p,16d6,8p,8c6`
-- wake: to wake the screen when is off
-- show_screensaver: it shows the screensaver
-- navigate_to_page: navigate to the page from the parameter. (The name of the page is created using the type of the card and the key value, like `cardMedia_bedroom`)
-- disable_screensaver: make sure it won't show screensaver after the timeout (useful for showing something all the time on the screen, like a media card while it's playing)
-- enable_screensaver: enable the screensaver after it was disabled
-- dim_0_to_100: dim screen brightness with values from 0 to 100
-- show_entity: show the card of an entity on the screen. It requires the id of the entity, ex `light.bedroom` and title, ex `Bedroom Light`
-- notify_on_screensaver: show a notification on the screensaver with 2 lines, it can receive both lines. The notification will disappear when you tap on the screensaver
-- notify_fullscreen: show a full-screen notification with title description and 2 buttons, and it plays a sound on the buzzer. The buttons are not actionable yet
-
-On the example configuration under the switch on_turn_off/on_turn_on there are a feature implemented to show an entity on the screen when the button is press and show the screensaver when the switch is off
+See the [examples](examples) folder for configuration examples.
 
 ## License
 
