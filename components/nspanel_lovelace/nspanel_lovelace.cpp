@@ -53,8 +53,8 @@ int NSPanelLovelace::app_get_driver_version() {
   #endif
 
   #ifdef USE_API
-  std::string str_berry_driver_version = std::to_string(this->berry_driver_version_);
-  this->fire_homeassistant_event("esphome.nspanel_nlui_driver_version", {{"payload", str_berry_driver_version}});
+  std::string message = std::to_string(this->berry_driver_version_);
+  this->fire_homeassistant_event("esphome.nspanel_data", {{"nlui_driver_version", message}});
   #endif
 
   return this->berry_driver_version_;
@@ -142,7 +142,7 @@ void NSPanelLovelace::process_command_(const std::string &message) {
   #endif
 
   #ifdef USE_API
-  this->fire_homeassistant_event("esphome.nspanel_customrecv", {{"payload", message}});
+  this->fire_homeassistant_event("esphome.nspanel_data", {{"CustomRecv", message}});
   #endif
 
   // call message trigger
