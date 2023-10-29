@@ -10,25 +10,33 @@ from esphome.const import (
 
 AUTO_LOAD = ["text_sensor"]
 CODEOWNERS = ["@sairon"]
-DEPENDENCIES = ["mqtt", "uart", "wifi", "esp32"]
+DEPENDENCIES = ["uart", "wifi", "esp32", "mqtt"]
+# DEPENDENCIES = ["uart", "wifi", "esp32"]
+#TODO: add dependency - depends on "mqtt" or "api"
 
 nspanel_lovelace_ns = cg.esphome_ns.namespace("nspanel_lovelace")
 NSPanelLovelace = nspanel_lovelace_ns.class_("NSPanelLovelace", cg.Component, uart.UARTDevice)
 
 
-NSPanelLovelaceMsgIncomingTrigger = nspanel_lovelace_ns.class_(
-    "NSPanelLovelaceMsgIncomingTrigger",
+NSPanelLovelaceMessageFromNextionTrigger = nspanel_lovelace_ns.class_(
+    "NSPanelLovelaceMessageFromNextionTrigger",
+    automation.Trigger.template(cg.std_string)
+)
+NSPanelLovelaceMessageToNextionTrigger = nspanel_lovelace_ns.class_(
+    "NSPanelLovelaceMessageToNextionTrigger",
     automation.Trigger.template(cg.std_string)
 )
 
+# TODO: MQTT
+# use mqtt if available, use api anyways
 CONF_MQTT_PARENT_ID = "mqtt_parent_id"
 CONF_MQTT_RECV_TOPIC = "mqtt_recv_topic"
 CONF_MQTT_SEND_TOPIC = "mqtt_send_topic"
-CONF_INCOMING_MSG = "on_incoming_msg"
+CONF_MESSAGE_FROM_NEXTION = "on_message_from_nextion"
+CONF_MESSAGE_TO_NEXTION = "on_message_to_nextion"
 CONF_BERRY_DRIVER_VERSION = "berry_driver_version"
 CONF_USE_MISSED_UPDATES_WORKAROUND = "use_missed_updates_workaround"
 CONF_UPDATE_BAUD_RATE = "update_baud_rate"
-
 
 def validate_config(config):
     if int(config[CONF_BERRY_DRIVER_VERSION]) > 0:
@@ -43,13 +51,20 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(NSPanelLovelace),
-            cv.GenerateID(CONF_MQTT_PARENT_ID): cv.use_id(mqtt.MQTTClientComponent),
-            cv.Optional(CONF_MQTT_RECV_TOPIC, default="tele/nspanel/RESULT"): cv.string,
-            cv.Optional(CONF_MQTT_SEND_TOPIC, default="cmnd/nspanel/CustomSend"): cv.string,
-            cv.Optional(CONF_INCOMING_MSG): automation.validate_automation(
+            cv.GenerateID(CONF_MQTT_PARENT_ID): cv.use_id(mqtt.MQTTClientComponent), #TODO MQTT
+            cv.Optional(CONF_MQTT_RECV_TOPIC, default="tele/nspanel/RESULT"): cv.string, #TODO MQTT
+            cv.Optional(CONF_MQTT_SEND_TOPIC, default="cmnd/nspanel/CustomSend"): cv.string, #TODO MQTT
+            cv.Optional(CONF_MESSAGE_FROM_NEXTION): automation.validate_automation(
                 cv.Schema(
                     {
-                        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(NSPanelLovelaceMsgIncomingTrigger),
+                        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(NSPanelLovelaceMessageFromNextionTrigger),
+                    }
+                )
+            ),
+            cv.Optional(CONF_MESSAGE_TO_NEXTION): automation.validate_automation(
+                cv.Schema(
+                    {
+                        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(NSPanelLovelaceMessageToNextionTrigger),
                     }
                 )
             ),
@@ -64,23 +79,28 @@ CONFIG_SCHEMA = cv.All(
     validate_config
         )
 
-
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
+    #TODO MQTT
     mqtt_parent = await cg.get_variable(config[CONF_MQTT_PARENT_ID])
     cg.add(var.set_mqtt(mqtt_parent))
     cg.add(var.set_recv_topic(config[CONF_MQTT_RECV_TOPIC]))
     cg.add(var.set_send_topic(config[CONF_MQTT_SEND_TOPIC]))
+
     cg.add(var.set_berry_driver_version(config[CONF_BERRY_DRIVER_VERSION]))
     cg.add(var.set_missed_updates_workaround(config[CONF_USE_MISSED_UPDATES_WORKAROUND]))
     cg.add(var.set_update_baud_rate(config[CONF_UPDATE_BAUD_RATE]))
 
-    for conf in config.get(CONF_INCOMING_MSG, []):
+    for conf in config.get(CONF_MESSAGE_FROM_NEXTION, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+
+    for conf in config.get(CONF_MESSAGE_TO_NEXTION, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [(cg.std_string.operator("ref"), "x")], conf)
 
     cg.add_library("WiFiClientSecure", None)
     cg.add_library("HTTPClient", None)

@@ -11,33 +11,65 @@ namespace nspanel_lovelace {
 static const char *const TAG = "nspanel_lovelace";
 
 void NSPanelLovelace::setup() {
+
+  #ifdef USE_MQTT
   this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
-    this->send_custom_command(payload);
-    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
-    if (this->use_missed_updates_workaround_) delay(75);
+    this->app_custom_send(payload);
   });
 
   if (this->berry_driver_version_ > 0) {
     this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
                            [this](const std::string &topic, const std::string &payload) {
-                             this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
-                               root["nlui_driver_version"] = this->berry_driver_version_;
-                             });
+                             this->app_get_driver_version();
                            });
 
     this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
                            [this](const std::string &topic, const std::string &payload) {
-                             ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
-
-                             // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
-                             // task avoids that. Maybe there is another way?
-                             App.scheduler.set_timeout(
-                                 this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
-                                   ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
-                                   this->upload_tft(payload);
-                                 });
+                             this->app_flash_nextion(payload);
                            });
   }
+  #endif
+}
+
+void NSPanelLovelace::app_custom_send(const std::string &payload) {
+
+  // call message trigger
+  std::string payload1 = payload;
+  this->message_to_nextion_callback_.call(payload1);
+
+  // trigger/s may modify the incoming message - if they emoty the message, do not send it
+  if (!payload1.empty()) {
+    this->send_custom_command(payload1);
+    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
+    if (this->use_missed_updates_workaround_) delay(75);
+  }
+}
+
+int NSPanelLovelace::app_get_driver_version() {
+  #ifdef USE_MQTT
+  this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
+    root["nlui_driver_version"] = this->berry_driver_version_;
+  });
+  #endif
+
+  #ifdef USE_API
+  std::string str_berry_driver_version = std::to_string(this->berry_driver_version_);
+  this->fire_homeassistant_event("esphome.nspanel_nlui_driver_version", {{"payload", str_berry_driver_version}});
+  #endif
+
+  return this->berry_driver_version_;
+}
+
+void NSPanelLovelace::app_flash_nextion(const std::string &payload) {
+  ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+
+  // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
+  // task avoids that. Maybe there is another way?
+  App.scheduler.set_timeout(
+      this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
+        ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+        this->upload_tft(payload);
+      });
 }
 
 void NSPanelLovelace::loop() {
@@ -103,14 +135,18 @@ bool NSPanelLovelace::process_data_() {
 }
 
 void NSPanelLovelace::process_command_(const std::string &message) {
+  #ifdef USE_MQTT
   this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
     root["CustomRecv"] = message;
   });
-  this->incoming_msg_callback_.call(message);
-}
+  #endif
 
-void NSPanelLovelace::add_incoming_msg_callback(std::function<void(std::string)> callback) {
-  this->incoming_msg_callback_.add(std::move(callback));
+  #ifdef USE_API
+  this->fire_homeassistant_event("esphome.nspanel_customrecv", {{"payload", message}});
+  #endif
+
+  // call message trigger
+  this->message_from_nextion_callback_.call(message);
 }
 
 void NSPanelLovelace::dump_config() { ESP_LOGCONFIG(TAG, "NSPanelLovelace:"); }
