@@ -2,7 +2,7 @@ from esphome import automation
 import esphome.config_validation as cv
 import esphome.codegen as cg
 
-from esphome.components import mqtt, uart
+from esphome.components import mqtt, uart, api
 from esphome.const import (
     CONF_ID,
     CONF_TRIGGER_ID,
@@ -10,9 +10,8 @@ from esphome.const import (
 
 AUTO_LOAD = ["text_sensor"]
 CODEOWNERS = ["@sairon"]
-DEPENDENCIES = ["uart", "wifi", "esp32", "mqtt"]
-# DEPENDENCIES = ["uart", "wifi", "esp32"]
-#TODO: add dependency - depends on "mqtt" or "api"
+DEPENDENCIES = ["uart", "wifi", "esp32"]
+# adding dependency - depends on at least on of "mqtt" or "api"
 
 nspanel_lovelace_ns = cg.esphome_ns.namespace("nspanel_lovelace")
 NSPanelLovelace = nspanel_lovelace_ns.class_("NSPanelLovelace", cg.Component, uart.UARTDevice)
@@ -27,8 +26,7 @@ NSPanelLovelaceMessageToNextionTrigger = nspanel_lovelace_ns.class_(
     automation.Trigger.template(cg.std_string)
 )
 
-# TODO: MQTT
-# use mqtt if available, use api anyways
+CONF_API_PARENT_ID = "api_parent_id"
 CONF_MQTT_PARENT_ID = "mqtt_parent_id"
 CONF_MQTT_RECV_TOPIC = "mqtt_recv_topic"
 CONF_MQTT_SEND_TOPIC = "mqtt_send_topic"
@@ -39,21 +37,27 @@ CONF_USE_MISSED_UPDATES_WORKAROUND = "use_missed_updates_workaround"
 CONF_UPDATE_BAUD_RATE = "update_baud_rate"
 
 def validate_config(config):
-    if int(config[CONF_BERRY_DRIVER_VERSION]) > 0:
-        if "CustomSend" not in config[CONF_MQTT_SEND_TOPIC]:
-            # backend uses topic_send.replace("CustomSend", ...) for GetDriverVersion and FlashNextion
-            raise cv.Invalid(f"{CONF_MQTT_SEND_TOPIC} must contain \"CustomSend\" for correct backend compatibility.\n"
-                             f"Either change it or set {CONF_BERRY_DRIVER_VERSION} to 0.")
-    return config
+    #TODO: add dependency - depends either "mqtt" or "api"
+    if not CONF_API_PARENT_ID in config and not CONF_MQTT_PARENT_ID in config:
+        raise cv.Invalid("Requires at least one of mqtt or api components.")
 
+    if CONF_MQTT_PARENT_ID in config:
+        if int(config[CONF_BERRY_DRIVER_VERSION]) > 0:
+            if "CustomSend" not in config[CONF_MQTT_SEND_TOPIC]:
+                # backend uses topic_send.replace("CustomSend", ...) for GetDriverVersion and FlashNextion
+                raise cv.Invalid(f"{CONF_MQTT_SEND_TOPIC} must contain \"CustomSend\" for correct backend compatibility.\n"
+                                f"Either change it or set {CONF_BERRY_DRIVER_VERSION} to 0.")
+        
+    return config
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(NSPanelLovelace),
-            cv.GenerateID(CONF_MQTT_PARENT_ID): cv.use_id(mqtt.MQTTClientComponent), #TODO MQTT
-            cv.Optional(CONF_MQTT_RECV_TOPIC, default="tele/nspanel/RESULT"): cv.string, #TODO MQTT
-            cv.Optional(CONF_MQTT_SEND_TOPIC, default="cmnd/nspanel/CustomSend"): cv.string, #TODO MQTT
+            cv.OnlyWith(CONF_API_PARENT_ID, "api"): cv.use_id(api.APIServer),
+            cv.OnlyWith(CONF_MQTT_PARENT_ID, "mqtt"): cv.use_id(mqtt.MQTTClientComponent),
+            cv.OnlyWith(CONF_MQTT_RECV_TOPIC, "mqtt", default="tele/nspanel/RESULT"): cv.All(cv.requires_component("mqtt"), cv.string),
+            cv.OnlyWith(CONF_MQTT_SEND_TOPIC, "mqtt", default="cmnd/nspanel/CustomSend"): cv.All(cv.requires_component("mqtt"), cv.string),
             cv.Optional(CONF_MESSAGE_FROM_NEXTION): automation.validate_automation(
                 cv.Schema(
                     {
@@ -77,18 +81,18 @@ CONFIG_SCHEMA = cv.All(
         .extend(cv.COMPONENT_SCHEMA),
     cv.only_with_arduino,
     validate_config
-        )
+    )
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    #TODO MQTT
-    mqtt_parent = await cg.get_variable(config[CONF_MQTT_PARENT_ID])
-    cg.add(var.set_mqtt(mqtt_parent))
-    cg.add(var.set_recv_topic(config[CONF_MQTT_RECV_TOPIC]))
-    cg.add(var.set_send_topic(config[CONF_MQTT_SEND_TOPIC]))
+    if CONF_MQTT_PARENT_ID in config:
+        mqtt_parent = await cg.get_variable(config[CONF_MQTT_PARENT_ID])
+        cg.add(var.set_mqtt(mqtt_parent))
+        cg.add(var.set_recv_topic(config[CONF_MQTT_RECV_TOPIC]))
+        cg.add(var.set_send_topic(config[CONF_MQTT_SEND_TOPIC]))
 
     cg.add(var.set_berry_driver_version(config[CONF_BERRY_DRIVER_VERSION]))
     cg.add(var.set_missed_updates_workaround(config[CONF_USE_MISSED_UPDATES_WORKAROUND]))
