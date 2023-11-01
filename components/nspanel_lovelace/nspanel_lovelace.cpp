@@ -5,6 +5,10 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/util.h"
 
+#ifdef USE_API
+#include "esphome/core/base_automation.h"
+#endif
+
 namespace esphome {
 namespace nspanel_lovelace {
 
@@ -28,6 +32,26 @@ void NSPanelLovelace::setup() {
                              this->app_flash_nextion(payload);
                            });
   }
+  #endif
+
+  #ifdef USE_API
+    auto api_userservicetrigger = new api::UserServiceTrigger<int32_t, std::string>("nspanelui_api_call", {"command", "data"});
+    api::global_api_server->register_user_service(api_userservicetrigger);
+    auto automation = new Automation<int32_t, std::string>(api_userservicetrigger);
+    auto lambdaaction = new LambdaAction<int32_t, std::string>([=](int32_t command, std::string data) -> void {
+        switch (command) {
+          case 1: // GetDriverVersion
+            this->app_get_driver_version();
+            break;
+          case 2: // CustomSend
+            this->app_custom_send(data);
+            break;
+          case 255: // FlashNextionTft
+            this->app_flash_nextion(data);
+            break;
+        }
+    });
+    automation->add_actions({lambdaaction});
   #endif
 }
 
