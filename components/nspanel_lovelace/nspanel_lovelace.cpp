@@ -14,6 +14,10 @@ namespace nspanel_lovelace {
 
 static const char *const TAG = "nspanel_lovelace";
 
+#ifdef USE_API
+static const char *const HA_API_EVENT = "esphome.nspanel.data";
+#endif
+
 void NSPanelLovelace::setup() {
 
   #ifdef USE_MQTT
@@ -78,7 +82,7 @@ int NSPanelLovelace::app_get_driver_version() {
 
   #ifdef USE_API
   std::string message = std::to_string(this->berry_driver_version_);
-  this->fire_homeassistant_event("esphome.nspanel_data", {{"nlui_driver_version", message}});
+  this->fire_homeassistant_event(HA_API_EVENT, {{"nlui_driver_version", message}});
   #endif
 
   return this->berry_driver_version_;
@@ -166,7 +170,7 @@ void NSPanelLovelace::process_command_(const std::string &message) {
   #endif
 
   #ifdef USE_API
-  this->fire_homeassistant_event("esphome.nspanel_data", {{"CustomRecv", message}});
+  this->fire_homeassistant_event(HA_API_EVENT, {{"CustomRecv", message}});
   #endif
 
   // call message trigger
