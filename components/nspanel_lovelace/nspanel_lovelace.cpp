@@ -96,6 +96,7 @@ void NSPanelLovelace::app_flash_nextion(const std::string &payload) {
   App.scheduler.set_timeout(
       this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
         ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+        //!! need to add -- id(ble_tracker).stop_scan();
         this->upload_tft(payload);
       });
 }
@@ -157,12 +158,12 @@ bool NSPanelLovelace::process_data_() {
   const uint8_t *message_data = data + 4;
   std::string message(message_data, message_data + length);
 
-  this->process_command_(message);
+  this->process_command_from_nextion(message);
   this->buffer_.clear();
   return true;
 }
 
-void NSPanelLovelace::process_command_(const std::string &message) {
+void NSPanelLovelace::process_command_from_nextion(const std::string &message) {
   #ifdef USE_MQTT
   this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
     root["CustomRecv"] = message;

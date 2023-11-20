@@ -54,6 +54,8 @@ class NSPanelLovelace : public Component, public uart::UARTDevice,
 
   void send_nextion_command(const std::string &command);
 
+  void process_command_from_nextion(const std::string &message);
+
   /**
    * Softreset the Nextion
    */
@@ -85,7 +87,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice,
   uint16_t recv_ret_string_(std::string &response, uint32_t timeout, bool recv_flag);
 
   bool process_data_();
-  void process_command_(const std::string &message);
 
   #ifdef USE_MQTT
   mqtt::MQTTClientComponent *mqtt_;
