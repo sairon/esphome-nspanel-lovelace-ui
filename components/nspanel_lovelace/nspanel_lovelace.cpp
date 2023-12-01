@@ -5,42 +5,109 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/util.h"
 
+#ifdef USE_API
+#include "esphome/core/base_automation.h"
+#endif
+
 namespace esphome {
 namespace nspanel_lovelace {
 
 static const char *const TAG = "nspanel_lovelace";
 
+#ifdef USE_API
+static const char *const HA_API_EVENT = "esphome.nspanel.data";
+#endif
+
 void NSPanelLovelace::setup() {
-  this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
-    this->send_custom_command(payload);
-    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
-    if (this->use_missed_updates_workaround_) delay(75);
-  });
 
-  if (this->berry_driver_version_ > 0) {
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
-                               root["nlui_driver_version"] = this->berry_driver_version_;
-                             });
-                           });
+  if (!this->use_api_) {
+#ifdef USE_MQTT
+    this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload)
+                            { this->app_custom_send(payload); });
 
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+    if (this->berry_driver_version_ > 0)
+    {
+      this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
+                              [this](const std::string &topic, const std::string &payload)
+                              {
+                                this->app_get_driver_version();
+                              });
 
-                             // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
-                             // task avoids that. Maybe there is another way?
-                             App.scheduler.set_timeout(
-                                 this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
-                                   ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
-                                   this->upload_tft(payload);
-                                 });
-                           });
+      this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
+                              [this](const std::string &topic, const std::string &payload)
+                              {
+                                this->app_flash_nextion(payload);
+                              });
+    }
+#endif
+  }
+  else {
+#ifdef USE_API
+    auto api_userservicetrigger = new api::UserServiceTrigger<int32_t, std::string>("nspanelui_api_call", {"command", "data"});
+    api::global_api_server->register_user_service(api_userservicetrigger);
+    auto automation = new Automation<int32_t, std::string>(api_userservicetrigger);
+    auto lambdaaction = new LambdaAction<int32_t, std::string>([=](int32_t command, std::string data) -> void {
+    switch (command) {
+      case 1: // GetDriverVersion
+        this->app_get_driver_version();
+        break;
+      case 2: // CustomSend
+        this->app_custom_send(data);
+        break;
+      case 255: // FlashNextionTft
+        this->app_flash_nextion(data);
+        break;
+    } });
+    automation->add_actions({lambdaaction});
+  #endif
   }
 }
 
+void NSPanelLovelace::app_custom_send(const std::string &payload) {
+
+  // call message trigger
+  std::string payload1 = payload;
+  this->message_to_nextion_callback_.call(payload1);
+
+  // trigger/s may modify the incoming message - if they emoty the message, do not send it
+  if (!payload1.empty()) {
+    this->send_custom_command(payload1);
+    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
+    if (this->use_missed_updates_workaround_) delay(75);
+  }
+}
+
+int NSPanelLovelace::app_get_driver_version() {
+  if (!this->use_api_) {
+#ifdef USE_MQTT
+    this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root)
+                              { root["nlui_driver_version"] = this->berry_driver_version_; });
+#endif
+  }
+  else {
+#ifdef USE_API
+    std::string message = std::to_string(this->berry_driver_version_);
+    this->fire_homeassistant_event(HA_API_EVENT, {{"nlui_driver_version", message}});
+#endif
+  }
+
+  return this->berry_driver_version_;
+}
+
+void NSPanelLovelace::app_flash_nextion(const std::string &payload) {
+  ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+
+  // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
+  // task avoids that. Maybe there is another way?
+  App.scheduler.set_timeout(
+      this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
+    ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+    //!! need to add -- id(ble_tracker).stop_scan();
+    this->upload_tft(payload); });
+}
+
 void NSPanelLovelace::loop() {
+  // don't interfere with update or reparse mode
   if (this->is_updating_ || this->reparse_mode_) {
     return;
   }
@@ -97,20 +164,29 @@ bool NSPanelLovelace::process_data_() {
   const uint8_t *message_data = data + 4;
   std::string message(message_data, message_data + length);
 
-  this->process_command_(message);
+  this->process_command_from_nextion(message);
   this->buffer_.clear();
   return true;
 }
 
-void NSPanelLovelace::process_command_(const std::string &message) {
-  this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
-    root["CustomRecv"] = message;
-  });
-  this->incoming_msg_callback_.call(message);
-}
+void NSPanelLovelace::process_command_from_nextion(const std::string &message)
+{
+  if (this->is_updating_) return; // don't interfere with update
 
-void NSPanelLovelace::add_incoming_msg_callback(std::function<void(std::string)> callback) {
-  this->incoming_msg_callback_.add(std::move(callback));
+  if (!this->use_api_) {
+#ifdef USE_MQTT
+    this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root)
+                              { root["CustomRecv"] = message; });
+#endif
+  }
+  else {
+#ifdef USE_API
+    this->fire_homeassistant_event(HA_API_EVENT, {{"CustomRecv", message}});
+#endif
+  }
+
+  // call message trigger
+  this->message_from_nextion_callback_.call(message);
 }
 
 void NSPanelLovelace::dump_config() { ESP_LOGCONFIG(TAG, "NSPanelLovelace:"); }
