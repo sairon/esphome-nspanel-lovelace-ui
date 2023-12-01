@@ -1,12 +1,12 @@
 from esphome import automation
 import esphome.config_validation as cv
 import esphome.codegen as cg
-
 from esphome.components import mqtt, uart
 from esphome.const import (
     CONF_ID,
     CONF_TRIGGER_ID,
 )
+from esphome.core import CORE
 
 AUTO_LOAD = ["text_sensor"]
 CODEOWNERS = ["@sairon"]
@@ -60,7 +60,6 @@ CONFIG_SCHEMA = cv.All(
     )
         .extend(uart.UART_DEVICE_SCHEMA)
         .extend(cv.COMPONENT_SCHEMA),
-    cv.only_with_arduino,
     validate_config
         )
 
@@ -82,6 +81,8 @@ async def to_code(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
 
-    cg.add_library("WiFiClientSecure", None)
-    cg.add_library("HTTPClient", None)
+    if CORE.is_esp32 and CORE.using_arduino:
+        cg.add_library("WiFiClientSecure", None)
+        cg.add_library("HTTPClient", None)
+
     cg.add_define("USE_NSPANEL_LOVELACE")

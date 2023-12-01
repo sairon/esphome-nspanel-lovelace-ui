@@ -219,7 +219,12 @@ void NSPanelLovelace::exit_reparse_mode() {
 
 void NSPanelLovelace::set_baud_rate_(int baud_rate) {
   // hopefully on NSPanel it should always be an ESP32ArduinoUARTComponent instance
+#ifdef USE_ARDUINO
   auto *uart = reinterpret_cast<uart::ESP32ArduinoUARTComponent *>(this->parent_);
+#endif
+#ifdef USE_ESP_IDF
+  auto *uart = reinterpret_cast<uart::IDFUARTComponent *>(this->parent_);
+#endif
   uart->set_baud_rate(baud_rate);
   uart->setup();
 }
