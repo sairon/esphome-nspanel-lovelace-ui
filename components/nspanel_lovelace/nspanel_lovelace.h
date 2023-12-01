@@ -4,12 +4,18 @@
 
 #include "esphome/components/mqtt/mqtt_client.h"
 #include "esphome/components/uart/uart.h"
-#include "esphome/components/uart/uart_component_esp32_arduino.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 
+#ifdef USE_ARDUINO
+#include "esphome/components/uart/uart_component_esp32_arduino.h"
 #include <HTTPClient.h>
+#endif
+#ifdef USE_ESP_IDF
+#include "esphome/components/uart/uart_component_esp_idf.h"
+#include <esp_http_client.h>
+#endif
 
 #ifdef USE_TIME
 #include "esphome/components/time/real_time_clock.h"
@@ -50,11 +56,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void exit_reparse_mode();
 
   /**
-   * Set the tft file URL. https seems problamtic with arduino..
-   */
-  void set_tft_url(const std::string &tft_url) { this->tft_url_ = tft_url; }
-
-  /**
    * Upload the tft file and softreset the Nextion
    */
   void upload_tft(const std::string &url);
@@ -83,7 +84,6 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   bool is_updating_ = false;
   bool reparse_mode_ = false;
 
-  std::string tft_url_;
   uint8_t *transfer_buffer_{nullptr};
   size_t transfer_buffer_size_;
   bool upload_first_chunk_sent_ = false;
@@ -97,7 +97,16 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
    */
   int content_length_ = 0;
   int tft_size_ = 0;
+
+#ifdef USE_ARDUINO
+  void init_upload(HTTPClient *http, const std::string &url);
+
   int upload_by_chunks_(HTTPClient *http, const std::string &url, int range_start);
+#elif defined(USE_ESP_IDF)
+  void init_upload(const std::string &url);
+
+  int upload_by_chunks_(const std::string &url, int range_start);
+#endif
 
   void upload_end_();
 };
