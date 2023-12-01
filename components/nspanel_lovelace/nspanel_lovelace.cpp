@@ -60,6 +60,7 @@ void NSPanelLovelace::setup() {
     } });
     automation->add_actions({lambdaaction});
   #endif
+  }
 }
 
 void NSPanelLovelace::app_custom_send(const std::string &payload) {
