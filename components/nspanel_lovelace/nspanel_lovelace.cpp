@@ -20,41 +20,44 @@ static const char *const HA_API_EVENT = "esphome.nspanel.data";
 
 void NSPanelLovelace::setup() {
 
-  #ifdef USE_MQTT
-  this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
-    this->app_custom_send(payload);
-  });
+  if (!this->use_api_) {
+#ifdef USE_MQTT
+    this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload)
+                            { this->app_custom_send(payload); });
 
-  if (this->berry_driver_version_ > 0) {
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             this->app_get_driver_version();
-                           });
+    if (this->berry_driver_version_ > 0)
+    {
+      this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
+                              [this](const std::string &topic, const std::string &payload)
+                              {
+                                this->app_get_driver_version();
+                              });
 
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             this->app_flash_nextion(payload);
-                           });
+      this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
+                              [this](const std::string &topic, const std::string &payload)
+                              {
+                                this->app_flash_nextion(payload);
+                              });
+    }
+#endif
   }
-  #endif
-
-  #ifdef USE_API
+  else {
+#ifdef USE_API
     auto api_userservicetrigger = new api::UserServiceTrigger<int32_t, std::string>("nspanelui_api_call", {"command", "data"});
     api::global_api_server->register_user_service(api_userservicetrigger);
     auto automation = new Automation<int32_t, std::string>(api_userservicetrigger);
     auto lambdaaction = new LambdaAction<int32_t, std::string>([=](int32_t command, std::string data) -> void {
-        switch (command) {
-          case 1: // GetDriverVersion
-            this->app_get_driver_version();
-            break;
-          case 2: // CustomSend
-            this->app_custom_send(data);
-            break;
-          case 255: // FlashNextionTft
-            this->app_flash_nextion(data);
-            break;
-        }
-    });
+    switch (command) {
+      case 1: // GetDriverVersion
+        this->app_get_driver_version();
+        break;
+      case 2: // CustomSend
+        this->app_custom_send(data);
+        break;
+      case 255: // FlashNextionTft
+        this->app_flash_nextion(data);
+        break;
+    } });
     automation->add_actions({lambdaaction});
   #endif
 }
@@ -74,16 +77,18 @@ void NSPanelLovelace::app_custom_send(const std::string &payload) {
 }
 
 int NSPanelLovelace::app_get_driver_version() {
-  #ifdef USE_MQTT
-  this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
-    root["nlui_driver_version"] = this->berry_driver_version_;
-  });
-  #endif
-
-  #ifdef USE_API
-  std::string message = std::to_string(this->berry_driver_version_);
-  this->fire_homeassistant_event(HA_API_EVENT, {{"nlui_driver_version", message}});
-  #endif
+  if (!this->use_api_) {
+#ifdef USE_MQTT
+    this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root)
+                              { root["nlui_driver_version"] = this->berry_driver_version_; });
+#endif
+  }
+  else {
+#ifdef USE_API
+    std::string message = std::to_string(this->berry_driver_version_);
+    this->fire_homeassistant_event(HA_API_EVENT, {{"nlui_driver_version", message}});
+#endif
+  }
 
   return this->berry_driver_version_;
 }
@@ -95,13 +100,13 @@ void NSPanelLovelace::app_flash_nextion(const std::string &payload) {
   // task avoids that. Maybe there is another way?
   App.scheduler.set_timeout(
       this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
-        ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
-        //!! need to add -- id(ble_tracker).stop_scan();
-        this->upload_tft(payload);
-      });
+    ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+    //!! need to add -- id(ble_tracker).stop_scan();
+    this->upload_tft(payload); });
 }
 
 void NSPanelLovelace::loop() {
+  // don't interfere with update or reparse mode
   if (this->is_updating_ || this->reparse_mode_) {
     return;
   }
@@ -163,16 +168,21 @@ bool NSPanelLovelace::process_data_() {
   return true;
 }
 
-void NSPanelLovelace::process_command_from_nextion(const std::string &message) {
-  #ifdef USE_MQTT
-  this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
-    root["CustomRecv"] = message;
-  });
-  #endif
+void NSPanelLovelace::process_command_from_nextion(const std::string &message)
+{
+  if (this->is_updating_) return; // don't interfere with update
 
-  #ifdef USE_API
-  this->fire_homeassistant_event(HA_API_EVENT, {{"CustomRecv", message}});
-  #endif
+  if (!this->use_api_) {
+#ifdef USE_MQTT
+    this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root)
+                              { root["CustomRecv"] = message; });
+#endif
+  }
+  else {
+#ifdef USE_API
+    this->fire_homeassistant_event(HA_API_EVENT, {{"CustomRecv", message}});
+#endif
+  }
 
   // call message trigger
   this->message_from_nextion_callback_.call(message);
