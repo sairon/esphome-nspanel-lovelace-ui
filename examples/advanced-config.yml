@@ -153,7 +153,7 @@ sensor:
     id: ntc_source
     pin: 38
     update_interval: 10s
-    attenuation: 11db
+    attenuation: 12db
 
   # Internal temperature sensor, adc reading converted to resistance (calculation)
   - platform: resistance
