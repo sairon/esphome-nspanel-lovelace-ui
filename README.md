@@ -17,8 +17,8 @@ appear.
 ## Usage
 
 Add reference to this repository to the `external_components` definitions. Make sure that `ref` is a valid tag
-from the [Releases](https://github.com/sairon/esphome-nspanel-lovelace-ui/tags) page or an existing
-[branch](https://github.com/sairon/esphome-nspanel-lovelace-ui/branches).
+from the [Releases](https://github.com/sairon/esphome-nspanel-lovelace-ui/tags) page (e.g. `v0.3.1`) or an existing
+[branch](https://github.com/sairon/esphome-nspanel-lovelace-ui/branches) (e.g. `release/v0.3.x`).
 You can use `dev` for the latest bleeding-edge version but be aware that things may break from time to time.
 
 ```yaml
@@ -26,7 +26,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/sairon/esphome-nspanel-lovelace-ui
-      ref: release/v0.2.x
+      ref: release/dev
     components: [nspanel_lovelace]
 ```
 
