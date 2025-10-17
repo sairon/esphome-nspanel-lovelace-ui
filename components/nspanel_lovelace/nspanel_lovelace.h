@@ -4,16 +4,15 @@
 
 #include "esphome/components/mqtt/mqtt_client.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/uart/uart_component_esp_idf.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 
 #ifdef USE_ARDUINO
-#include "esphome/components/uart/uart_component_esp32_arduino.h"
 #include <HTTPClient.h>
 #endif
 #ifdef USE_ESP_IDF
-#include "esphome/components/uart/uart_component_esp_idf.h"
 #include <esp_http_client.h>
 #endif
 
