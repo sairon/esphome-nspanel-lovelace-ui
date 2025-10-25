@@ -25,6 +25,7 @@ logger:
     ntc: WARN
 
 ota:
+  - platform: esphome
 
 # API. Add api_pwd to your secrets.yaml.
 api:
