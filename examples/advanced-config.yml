@@ -25,7 +25,6 @@ logger:
     ntc: WARN
 
 ota:
-  safe_mode: true
 
 # API. Add api_pwd to your secrets.yaml.
 api:
