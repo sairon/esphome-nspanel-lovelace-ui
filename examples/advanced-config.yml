@@ -171,6 +171,10 @@ sensor:
       reference_temperature: 25°C
       reference_resistance: 10kOhm
     name: $friendly_devicename Temperature
+    filters:
+      - sliding_window_moving_average:
+          window_size: 15
+          send_every: 15
 
 output:
   # Buzzer for playing tones

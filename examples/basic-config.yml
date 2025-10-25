@@ -62,6 +62,10 @@ sensor:
      reference_temperature: 25°C
      reference_resistance: 10kOhm
    name: $device_name Temperature
+   filters:
+     - sliding_window_moving_average:
+         window_size: 15
+         send_every: 15
 
  - platform: resistance
    id: resistance_sensor
