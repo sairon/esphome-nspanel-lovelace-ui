@@ -172,13 +172,12 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
   } else {
     ESP_LOGV(TAG, "Memory for buffer allocated successfully");
 
-    int low_heap_amt = esp_get_free_heap_size() - 32768;
 
     while (true) {
       App.feed_wdt();
       ESP_LOGVV(TAG, "Available heap: %u", esp_get_free_heap_size());
 
-      if (esp_get_free_heap_size() < low_heap_amt){
+      if (esp_get_free_heap_size() < 4096){
         ESP_LOGD(TAG, "Low heap");
         vTaskDelay(pdMS_TO_TICKS(1000));
         continue;
