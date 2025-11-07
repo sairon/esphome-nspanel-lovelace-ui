@@ -106,6 +106,7 @@ void NSPanelLovelace::process_command_(const std::string &message) {
   this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
     root["CustomRecv"] = message;
   });
+  ESP_LOGD(TAG, "Sending custom command: %s", command.c_str());
   this->incoming_msg_callback_.call(message);
 }
 
