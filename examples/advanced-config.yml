@@ -25,7 +25,11 @@ logger:
     ntc: WARN
 
 ota:
-  safe_mode: true
+  platform: esphome
+
+safe_mode:
+  num_attempts: 5
+  reboot_timeout: 5min
 
 # API. Add api_pwd to your secrets.yaml.
 api:
