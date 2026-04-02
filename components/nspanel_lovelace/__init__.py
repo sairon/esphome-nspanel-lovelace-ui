@@ -83,6 +83,7 @@ async def to_code(config):
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
 
     if CORE.is_esp32 and CORE.using_arduino:
+        cg.add_library("Networking", None)
         cg.add_library("NetworkClientSecure", None)
         cg.add_library("HTTPClient", None)
     elif CORE.is_esp32:
