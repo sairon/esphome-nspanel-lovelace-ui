@@ -9,6 +9,8 @@ esphome:
 
 esp32:
   board: esp32dev
+  framework:
+    type: arduino
 
 wifi:
   networks:
@@ -25,7 +27,7 @@ logger:
     ntc: WARN
 
 ota:
-  safe_mode: true
+  - platform: esphome
 
 # API. Add api_pwd to your secrets.yaml.
 api:
