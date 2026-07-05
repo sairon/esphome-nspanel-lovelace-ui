@@ -1,0 +1,11 @@
+packages:
+  example: !include ../examples/advanced-config.yml
+
+# The main config is merged after packages, so this source is processed last
+# and takes precedence over the example's git source, making the build use
+# the component from this checkout.
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [nspanel_lovelace]
