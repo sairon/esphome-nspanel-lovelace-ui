@@ -19,6 +19,8 @@ jobs:
         config:
           - tests/test-arduino.yaml
           - tests/test-esp-idf.yaml
+          - tests/test-example-basic.yaml
+          - tests/test-example-advanced.yaml
         esphome-version: [stable, beta, dev]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -27,7 +29,7 @@ jobs:
           path: |
             ~/.platformio
             ~/.cache
-          key: esphome-${{ matrix.esphome-version }}-${{ matrix.config }}-${{ hashFiles('components/**', 'tests/**') }}
+          key: esphome-${{ matrix.esphome-version }}-${{ matrix.config }}-${{ hashFiles('components/**', 'tests/**', 'examples/**') }}
           restore-keys: |
             esphome-${{ matrix.esphome-version }}-${{ matrix.config }}-
       - uses: esphome/build-action@4ef4722a2935eac47b7e227fe0e1f8e0f8afcc42 # v7.3.0
