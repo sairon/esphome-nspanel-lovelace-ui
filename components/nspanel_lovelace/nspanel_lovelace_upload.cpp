@@ -1,3 +1,4 @@
+#include <regex>
 #include "nspanel_lovelace.h"
 
 #include "esphome/core/application.h"
@@ -171,9 +172,18 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
   } else {
     ESP_LOGV(TAG, "Memory for buffer allocated successfully");
 
+
     while (true) {
       App.feed_wdt();
       ESP_LOGVV(TAG, "Available heap: %u", esp_get_free_heap_size());
+
+      if (esp_get_free_heap_size() < 4096){
+        ESP_LOGD(TAG, "Low heap");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        continue;
+      }
+
+      vTaskDelay(pdMS_TO_TICKS(2));
       int read_len = esp_http_client_read(client, reinterpret_cast<char *>(buffer), 4096);
       ESP_LOGVV(TAG, "Read %d bytes from HTTP client, writing to UART", read_len);
       if (read_len > 0) {
@@ -181,8 +191,8 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
         ESP_LOGVV(TAG, "Write to UART successful");
         this->recv_ret_string_(recv_string, 5000, true);
         this->content_length_ -= read_len;
-        ESP_LOGD(TAG, "Uploaded %0.2f %%, remaining %d bytes",
-                 100.0 * (this->tft_size_ - this->content_length_) / this->tft_size_, this->content_length_);
+        ESP_LOGD(TAG, "Uploaded %0.2f %%, remaining %d bytes, free heap %u bytes",
+                 100.0 * (this->tft_size_ - this->content_length_) / this->tft_size_, this->content_length_, esp_get_free_heap_size());
         if (recv_string[0] != 0x05) {  // 0x05 == "ok"
           ESP_LOGD(
               TAG, "recv_string [%s]",
@@ -336,6 +346,9 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   }
 
   this->is_updating_ = true;
+  this->mqtt_->unsubscribe(this->send_topic_);
+  this->mqtt_->unsubscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"));
+  this->mqtt_->unsubscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"));
 
 #ifdef USE_ARDUINO
   HTTPClient http;
