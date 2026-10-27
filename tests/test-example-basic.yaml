@@ -1,9 +1,9 @@
 packages:
   example: !include ../examples/basic-config.yml
 
-# The main config is merged after packages, so this source is processed last
-# and takes precedence over the example's git source, making the build use
-# the component from this checkout.
+# ESPHome appends this entry after the example's git source. The git source is
+# still fetched, but the source processed last takes priority when loading
+# components, so the build uses the component from this checkout.
 external_components:
   - source:
       type: local
