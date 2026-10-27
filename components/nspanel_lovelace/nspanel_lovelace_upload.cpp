@@ -177,8 +177,8 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
       App.feed_wdt();
       ESP_LOGVV(TAG, "Available heap: %lu", esp_get_free_heap_size());
 
-      if (esp_get_free_heap_size() < 4096){
-        ESP_LOGD(TAG, "Low heap");
+      if (esp_get_free_heap_size() < 2048){
+        ESP_LOGD(TAG, "Available heap: %lu Low heap", esp_get_free_heap_size());
         vTaskDelay(pdMS_TO_TICKS(1000));
         continue;
       }
