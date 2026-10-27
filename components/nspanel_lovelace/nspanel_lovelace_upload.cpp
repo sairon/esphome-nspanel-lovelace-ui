@@ -1,5 +1,6 @@
 #include "nspanel_lovelace.h"
 
+#include "esphome/core/alloc_helpers.h"
 #include "esphome/core/application.h"
 #include "esphome/core/util.h"
 #include "esphome/core/log.h"
