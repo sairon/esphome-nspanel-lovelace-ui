@@ -409,6 +409,7 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   } else if (esp_get_free_heap_size() < 10240) {
     chunk_size = 4096;
   }
+  chunk_size = 1024;
 
 
   if (this->transfer_buffer_ == nullptr) {
