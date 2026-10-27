@@ -2,6 +2,7 @@ from esphome import automation
 import esphome.config_validation as cv
 import esphome.codegen as cg
 from esphome.components import mqtt, uart
+from esphome.components.esp32 import include_builtin_idf_component
 from esphome.const import (
     CONF_ID,
     CONF_TRIGGER_ID,
@@ -82,7 +83,17 @@ async def to_code(config):
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
 
     if CORE.is_esp32 and CORE.using_arduino:
+        if getattr(CORE, "using_toolchain_esp_idf", False):
+            # ESP-IDF toolchain (ESPHome 2026.7.0+) enables built-in Arduino
+            # libraries by their folder/CMake name
+            cg.add_library("Network", None)
+        else:
+            # PlatformIO LDF resolves the same library by its
+            # library.properties name
+            cg.add_library("Networking", None)
         cg.add_library("NetworkClientSecure", None)
         cg.add_library("HTTPClient", None)
+    elif CORE.is_esp32:
+        include_builtin_idf_component("esp_http_client")
 
     cg.add_define("USE_NSPANEL_LOVELACE")

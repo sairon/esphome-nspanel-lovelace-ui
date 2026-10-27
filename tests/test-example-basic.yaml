@@ -1,0 +1,11 @@
+packages:
+  example: !include ../examples/basic-config.yml
+
+# ESPHome appends this entry after the example's git source. The git source is
+# still fetched, but the source processed last takes priority when loading
+# components, so the build uses the component from this checkout.
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [nspanel_lovelace]
