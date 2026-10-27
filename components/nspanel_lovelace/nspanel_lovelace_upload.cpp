@@ -124,7 +124,7 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
   ESP_LOGVV(TAG, "url: %s", url.c_str());
   uint range_size = this->tft_size_ - range_start;
   ESP_LOGVV(TAG, "tft_size_: %i", this->tft_size_);
-  ESP_LOGV(TAG, "Available heap: %u", esp_get_free_heap_size());
+  ESP_LOGV(TAG, "Available heap: %lu", esp_get_free_heap_size());
   int range_end = (range_start == 0) ? std::min(this->tft_size_, 16383) : this->tft_size_;
   if (range_size <= 0 or range_end <= range_start) {
     ESP_LOGE(TAG, "Invalid range");
@@ -144,7 +144,7 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
   sprintf(range_header, "bytes=%d-%d", range_start, range_end);
   ESP_LOGV(TAG, "Requesting range: %s", range_header);
   esp_http_client_set_header(client, "Range", range_header);
-  ESP_LOGVV(TAG, "Available heap: %u", esp_get_free_heap_size());
+  ESP_LOGVV(TAG, "Available heap: %lu", esp_get_free_heap_size());
 
   ESP_LOGV(TAG, "Opening http connetion");
   esp_err_t err;
@@ -168,14 +168,14 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
   std::string recv_string;
   if (buffer == nullptr) {
     ESP_LOGE(TAG, "Failed to allocate memory for buffer");
-    ESP_LOGV(TAG, "Available heap: %u", esp_get_free_heap_size());
+    ESP_LOGV(TAG, "Available heap: %lu", esp_get_free_heap_size());
   } else {
     ESP_LOGV(TAG, "Memory for buffer allocated successfully");
 
 
     while (true) {
       App.feed_wdt();
-      ESP_LOGVV(TAG, "Available heap: %u", esp_get_free_heap_size());
+      ESP_LOGVV(TAG, "Available heap: %lu", esp_get_free_heap_size());
 
       if (esp_get_free_heap_size() < 4096){
         ESP_LOGD(TAG, "Low heap");
@@ -191,7 +191,7 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
         ESP_LOGVV(TAG, "Write to UART successful");
         this->recv_ret_string_(recv_string, 5000, true);
         this->content_length_ -= read_len;
-        ESP_LOGD(TAG, "Uploaded %0.2f %%, remaining %d bytes, free heap %u bytes",
+        ESP_LOGD(TAG, "Uploaded %0.2f %%, remaining %d bytes, free heap %lu bytes",
                  100.0 * (this->tft_size_ - this->content_length_) / this->tft_size_, this->content_length_, esp_get_free_heap_size());
         if (recv_string[0] != 0x05) {  // 0x05 == "ok"
           ESP_LOGD(
@@ -285,7 +285,7 @@ void NSPanelLovelace::init_upload(HTTPClient *http, const std::string &url) {
 void NSPanelLovelace::init_upload(const std::string &url) {
   // Define the configuration for the HTTP client
   ESP_LOGV(TAG, "Establishing connection to HTTP server");
-  ESP_LOGVV(TAG, "Available heap: %u", esp_get_free_heap_size());
+  ESP_LOGVV(TAG, "Available heap: %lu", esp_get_free_heap_size());
   esp_http_client_config_t config = {
       .url = url.c_str(),
       .cert_pem = nullptr,
@@ -295,7 +295,7 @@ void NSPanelLovelace::init_upload(const std::string &url) {
 
   // Initialize the HTTP client with the configuration
   ESP_LOGV(TAG, "Initializing HTTP client");
-  ESP_LOGV(TAG, "Available heap: %u", esp_get_free_heap_size());
+  ESP_LOGV(TAG, "Available heap: %lu", esp_get_free_heap_size());
   esp_http_client_handle_t http = esp_http_client_init(&config);
   if (!http) {
     ESP_LOGE(TAG, "Failed to initialize HTTP client.");
@@ -304,7 +304,7 @@ void NSPanelLovelace::init_upload(const std::string &url) {
 
   // Perform the HTTP request
   ESP_LOGV(TAG, "Check if the client could connect");
-  ESP_LOGV(TAG, "Available heap: %u", esp_get_free_heap_size());
+  ESP_LOGV(TAG, "Available heap: %lu", esp_get_free_heap_size());
   esp_err_t err = esp_http_client_perform(http);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "HTTP request failed: %s", esp_err_to_name(err));
@@ -415,12 +415,12 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   if (this->transfer_buffer_ == nullptr) {
     ExternalRAMAllocator<uint8_t> allocator(ExternalRAMAllocator<uint8_t>::ALLOW_FAILURE);
     // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    ESP_LOGD(TAG, "Allocating buffer size %d, Heap size is %u", chunk_size, esp_get_free_heap_size());
+    ESP_LOGD(TAG, "Allocating buffer size %ld, Heap size is %lu", chunk_size, esp_get_free_heap_size());
     this->transfer_buffer_ = allocator.allocate(chunk_size);
     if (this->transfer_buffer_ == nullptr) {  // Try a smaller size
-      ESP_LOGD(TAG, "Could not allocate buffer size: %d trying 4096 instead", chunk_size);
+      ESP_LOGD(TAG, "Could not allocate buffer size: %ld trying 4096 instead", chunk_size);
       chunk_size = 4096;
-      ESP_LOGD(TAG, "Allocating %d buffer", chunk_size);
+      ESP_LOGD(TAG, "Allocating %ld buffer", chunk_size);
       this->transfer_buffer_ = allocator.allocate(chunk_size);
 
       if (!this->transfer_buffer_)
@@ -431,7 +431,7 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   }
 
   // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-  ESP_LOGD(TAG, "Updating tft from \"%s\" with a file size of %d using %zu chunksize, Heap Size %d",
+  ESP_LOGD(TAG, "Updating tft from \"%s\" with a file size of %d using %zu chunksize, Heap Size %ld",
            url.c_str(), this->content_length_, this->transfer_buffer_size_, esp_get_free_heap_size());
 
   int result = 0;
@@ -447,7 +447,7 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
     }
     App.feed_wdt();
     // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    ESP_LOGD(TAG, "Heap Size %d, Bytes left %d", esp_get_free_heap_size(), this->content_length_);
+    ESP_LOGD(TAG, "Heap Size %ld, Bytes left %d", esp_get_free_heap_size(), this->content_length_);
   }
   ESP_LOGD(TAG, "Successfully updated Nextion!");
 
