@@ -56,6 +56,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
 
  protected:
   void set_baud_rate_(int baud_rate);
+  bool wait_for_comok_();
 
   static uint16_t crc16(const uint8_t *data, uint16_t len);
 
