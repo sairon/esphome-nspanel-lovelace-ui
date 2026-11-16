@@ -168,6 +168,30 @@ void NSPanelLovelace::init_upload(const std::string &url) {
   this->tft_size_ = tft_file_size;
 }
 
+bool NSPanelLovelace::wait_for_comok_() {
+  static const uint8_t ATTEMPTS = 3;
+  static const uint32_t TIMEOUT_MS = 1000;
+
+  for (uint8_t attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    if (attempt > 1) {
+      ESP_LOGD(TAG, "No comok from the display, reconnecting (%u/%u)", attempt, ATTEMPTS);
+      this->start_reparse_mode();
+    }
+
+    std::string response;
+    uint32_t start = millis();
+    uint32_t elapsed;
+    while ((elapsed = millis() - start) < TIMEOUT_MS) {
+      this->recv_ret_string_(response, TIMEOUT_MS - elapsed, false);
+      if (response.find("comok") != std::string::npos) {
+        ESP_LOGD(TAG, "Display connected after %" PRIu32 " ms", millis() - start);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void NSPanelLovelace::upload_tft(const std::string &url) {
   if (this->is_updating_) {
     ESP_LOGD(TAG, "Currently updating");
@@ -181,6 +205,9 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
 
   if (!this->reparse_mode_) {
     this->start_reparse_mode();
+  }
+  if (!this->wait_for_comok_()) {
+    ESP_LOGW(TAG, "No comok from the display, attempting the upload anyway");
   }
 
   this->is_updating_ = true;
