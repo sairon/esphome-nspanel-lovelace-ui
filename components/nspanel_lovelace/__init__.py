@@ -7,7 +7,6 @@ from esphome.const import (
     CONF_ID,
     CONF_TRIGGER_ID,
 )
-from esphome.core import CORE
 
 AUTO_LOAD = ["text_sensor"]
 CODEOWNERS = ["@sairon"]
@@ -82,18 +81,6 @@ async def to_code(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
 
-    if CORE.is_esp32 and CORE.using_arduino:
-        if getattr(CORE, "using_toolchain_esp_idf", False):
-            # ESP-IDF toolchain (ESPHome 2026.7.0+) enables built-in Arduino
-            # libraries by their folder/CMake name
-            cg.add_library("Network", None)
-        else:
-            # PlatformIO LDF resolves the same library by its
-            # library.properties name
-            cg.add_library("Networking", None)
-        cg.add_library("NetworkClientSecure", None)
-        cg.add_library("HTTPClient", None)
-    elif CORE.is_esp32:
-        include_builtin_idf_component("esp_http_client")
+    include_builtin_idf_component("esp_http_client")
 
     cg.add_define("USE_NSPANEL_LOVELACE")

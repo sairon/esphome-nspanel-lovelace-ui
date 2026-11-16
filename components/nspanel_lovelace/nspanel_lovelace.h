@@ -9,12 +9,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 
-#ifdef USE_ARDUINO
-#include <HTTPClient.h>
-#endif
-#ifdef USE_ESP_IDF
 #include <esp_http_client.h>
-#endif
 
 #ifdef USE_TIME
 #include "esphome/components/time/real_time_clock.h"
@@ -83,29 +78,12 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   bool is_updating_ = false;
   bool reparse_mode_ = false;
 
-  uint8_t *transfer_buffer_{nullptr};
-  size_t transfer_buffer_size_;
-  bool upload_first_chunk_sent_ = false;
-
-  /**
-   * will request chunk_size chunks from the web server
-   * and send each to the nextion
-   * @param int contentLength Total size of the file
-   * @param uint32_t chunk_size
-   * @return true if success, false for failure.
-   */
   int content_length_ = 0;
   int tft_size_ = 0;
 
-#ifdef USE_ARDUINO
-  void init_upload(HTTPClient *http, const std::string &url);
-
-  int upload_by_chunks_(HTTPClient *http, const std::string &url, int range_start);
-#elif defined(USE_ESP_IDF)
   void init_upload(const std::string &url);
 
   int upload_by_chunks_(const std::string &url, int range_start);
-#endif
 
   void upload_end_();
 };
