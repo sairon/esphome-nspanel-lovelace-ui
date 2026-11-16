@@ -203,7 +203,6 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
             delete[] buffer;
             ESP_LOGVV(TAG, "Memory for buffer deallocated");
             esp_http_client_cleanup(client);
-            esp_http_client_close(client);
             return result;
           }
         }
@@ -222,7 +221,6 @@ int NSPanelLovelace::upload_by_chunks_(const std::string &url, int range_start) 
     ESP_LOGVV(TAG, "Memory for buffer deallocated");
   }
   esp_http_client_cleanup(client);
-  esp_http_client_close(client);
   return range_end + 1;
 }
 #endif
@@ -317,6 +315,7 @@ void NSPanelLovelace::init_upload(const std::string &url) {
   } else {
     ESP_LOGV(TAG, "File size check passed. Proceeding...");
   }
+  esp_http_client_cleanup(http);
   this->content_length_ = tft_file_size;
   this->tft_size_ = tft_file_size;
 }
