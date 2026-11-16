@@ -218,9 +218,10 @@ void NSPanelLovelace::exit_reparse_mode() {
 }
 
 void NSPanelLovelace::set_baud_rate_(int baud_rate) {
-  auto *uart = reinterpret_cast<uart::IDFUARTComponent *>(this->parent_);
-  uart->set_baud_rate(baud_rate);
-  uart->setup();
+  // Wait for TX to drain because reinstalling the driver drops bytes still in the FIFO
+  this->flush();
+  this->parent_->set_baud_rate(baud_rate);
+  this->parent_->load_settings(false);
 }
 
 }  // namespace nspanel_lovelace
