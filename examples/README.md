@@ -2,7 +2,8 @@
 
 ## Basic config
 
-Minimal configuration with configuration of all peripherals is in [basic-config.yml](basic-config.yml). Buttons are
+Minimal MQTT configuration with configuration of all peripherals is in [basic-config.yml](basic-config.yml). For native
+Home Assistant API transport, use [basic-api-config.yml](basic-api-config.yml). Buttons are
 coupled with respective relays and two Home Assistant serviecs are exposed - `upload_tft` for an explicit upgrade
 of the display firmware (can be used for the initial reflash) and `play_rtttl` for playing [RTTTL melodies](https://esphome.io/components/rtttl.html).
 
@@ -12,8 +13,9 @@ the `updateMode` options is set to `auto-notify`, or should be upgraded automati
 
 ## Advanced configuration
 
-More complex example was contributed by [@spike886](https://github.com/spike886), you can find it in
-[advanced-config.yml](advanced-config.yml).
+More complex examples were contributed by [@spike886](https://github.com/spike886). MQTT mode is in
+[advanced-config.yml](advanced-config.yml), and native Home Assistant API mode is in
+[advanced-api-config.yml](advanced-api-config.yml).
 
 In this configuration, we expose multiple services to Home Assistant:
 
