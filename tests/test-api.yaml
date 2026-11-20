@@ -36,5 +36,8 @@ nspanel_lovelace:
   id: nspanel
   connection: api
   api_device_id: nspanel-api-ci
+  on_before_tft_upload:
+    - lambda: |-
+        ESP_LOGI("test", "Before TFT upload");
 
 logger:

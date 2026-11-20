@@ -52,6 +52,7 @@ There are several options you can use:
 - `mqtt_send_topic`: change if you are using different `panelSendTopic` in your backend configuration
 - `api_device_id`: value used to route `esphome.nspanel.data` events (defaults to `mqtt_recv_topic`)
 - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
+- `on_before_tft_upload`: automation called once before any TFT upload starts, including manual uploads and backend update notifications
 - `berry_driver_version`: version of the official Tasmota Berry driver version reported to AppDaemon backend. If set to `0`, automatic updates or notifications about them are effectively disabled. Defaults to `999`.
 - `use_missed_updates_workaround`: use workaround for [missed status updates](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8) - introduce short delay in internal ESPHome-NSPanel communication. Defaults to `true`, usually there should be no need to disable this option.
 - `update_baud_rate`: baud rate to use when updating the TFT firmware, defaults to `921600`. Set to `115200` if you encounter any issues during the updates.
@@ -79,7 +80,22 @@ nspanel_lovelace:
 
 Set `api_device_id` to the panel's API device ID and `panelName` to the ESPHome device name. The backend calls `<panelName>_nspanelui_api_call`; received panel messages are emitted on `esphome.nspanel.data`.
 
-The service has `data` (string) and `command` (integer): `2` sends a custom display command, `1` reports the Lovelace UI driver version, and `255` starts a TFT upload.
+The action has `data` (string) and `command` (integer): `2` sends a custom display command, `1` reports the Lovelace UI driver version, and `255` starts a TFT upload.
+
+Stop BLE scanning before a TFT upload:
+
+```yaml
+esp32_ble_tracker:
+  id: ble_tracker
+
+nspanel_lovelace:
+  id: nspanel
+  connection: api
+  api_device_id: "kitchen"
+  on_before_tft_upload:
+    - esp32_ble_tracker.stop_scan:
+        id: ble_tracker
+```
 
 ### TFT firmware update
 

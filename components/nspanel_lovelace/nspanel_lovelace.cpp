@@ -177,6 +177,10 @@ void NSPanelLovelace::add_incoming_msg_callback(std::function<void(std::string)>
   this->incoming_msg_callback_.add(std::move(callback));
 }
 
+void NSPanelLovelace::add_before_tft_upload_callback(std::function<void()> callback) {
+  this->before_tft_upload_callback_.add(std::move(callback));
+}
+
 void NSPanelLovelace::dump_config() {
   ESP_LOGCONFIG(TAG, "NSPanelLovelace:");
   ESP_LOGCONFIG(TAG, "  Connection mode: %s", this->use_api_ ? "API" : "MQTT");

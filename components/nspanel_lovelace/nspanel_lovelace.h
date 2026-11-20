@@ -50,6 +50,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void nspanelui_api_call(const StringRef &data, int32_t command);
 
   void add_incoming_msg_callback(std::function<void(std::string)> callback);
+  void add_before_tft_upload_callback(std::function<void()> callback);
 
   void send_nextion_command(const std::string &command);
 
@@ -93,6 +94,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   unsigned int update_baud_rate_;
 
   CallbackManager<void(std::string)> incoming_msg_callback_;
+  CallbackManager<void()> before_tft_upload_callback_;
 
   std::vector<uint8_t> buffer_;
 

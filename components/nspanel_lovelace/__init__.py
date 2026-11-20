@@ -20,6 +20,11 @@ NSPanelLovelaceMsgIncomingTrigger = nspanel_lovelace_ns.class_(
     automation.Trigger.template(cg.std_string)
 )
 
+NSPanelLovelaceBeforeTftUploadTrigger = nspanel_lovelace_ns.class_(
+    "NSPanelLovelaceBeforeTftUploadTrigger",
+    automation.Trigger.template()
+)
+
 CONF_CONNECTION = "connection"
 CONNECTION_MQTT = "mqtt"
 CONNECTION_API = "api"
@@ -28,6 +33,7 @@ CONF_MQTT_PARENT_ID = "mqtt_parent_id"
 CONF_MQTT_RECV_TOPIC = "mqtt_recv_topic"
 CONF_MQTT_SEND_TOPIC = "mqtt_send_topic"
 CONF_INCOMING_MSG = "on_incoming_msg"
+CONF_BEFORE_TFT_UPLOAD = "on_before_tft_upload"
 CONF_BERRY_DRIVER_VERSION = "berry_driver_version"
 CONF_USE_MISSED_UPDATES_WORKAROUND = "use_missed_updates_workaround"
 CONF_UPDATE_BAUD_RATE = "update_baud_rate"
@@ -57,6 +63,13 @@ COMMON_SCHEMA = {
         cv.Schema(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(NSPanelLovelaceMsgIncomingTrigger),
+            }
+        )
+    ),
+    cv.Optional(CONF_BEFORE_TFT_UPLOAD): automation.validate_automation(
+        cv.Schema(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(NSPanelLovelaceBeforeTftUploadTrigger),
             }
         )
     ),
@@ -108,6 +121,10 @@ async def to_code(config):
     for conf in config.get(CONF_INCOMING_MSG, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+
+    for conf in config.get(CONF_BEFORE_TFT_UPLOAD, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
 
     if hasattr(esp32, "request_http_client"):
         esp32.request_http_client()
