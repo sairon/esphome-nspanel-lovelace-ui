@@ -11,32 +11,65 @@ namespace nspanel_lovelace {
 static const char *const TAG = "nspanel_lovelace";
 
 void NSPanelLovelace::setup() {
-  this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
-    this->send_custom_command(payload);
-    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
-    if (this->use_missed_updates_workaround_) delay(75);
-  });
+#ifdef USE_MQTT
+  if (!this->use_api_) {
+    this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
+      this->send_custom_command(payload);
+      // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
+      if (this->use_missed_updates_workaround_) delay(75);
+    });
 
-  if (this->berry_driver_version_ > 0) {
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
-                               root["nlui_driver_version"] = this->berry_driver_version_;
+    if (this->berry_driver_version_ > 0) {
+      this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
+                             [this](const std::string &topic, const std::string &payload) {
+                               this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
+                                 root["nlui_driver_version"] = this->berry_driver_version_;
+                               });
                              });
-                           });
 
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+      this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
+                             [this](const std::string &topic, const std::string &payload) {
+                               ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
 
-                             // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
-                             // task avoids that. Maybe there is another way?
-                             App.scheduler.set_timeout(
-                                 this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
-                                   ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
-                                   this->upload_tft(payload);
-                                 });
-                           });
+                               // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
+                               // task avoids that. Maybe there is another way?
+                               App.scheduler.set_timeout(
+                                   this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
+                                     ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+                                     this->upload_tft(payload);
+                                   });
+                             });
+    }
+  } else {
+#endif
+#ifdef USE_API_CUSTOM_SERVICES
+    this->register_service(&NSPanelLovelace::nspanelui_api_call, "nspanelui_api_call",
+                           {"data", "command"});
+#endif
+#ifdef USE_MQTT
+  }
+#endif
+}
+
+void NSPanelLovelace::nspanelui_api_call(std::string data, int32_t command) {
+  switch (command) {
+    case 1:
+#ifdef USE_API_HOMEASSISTANT_SERVICES
+      if (this->berry_driver_version_ > 0) {
+        this->fire_homeassistant_event("esphome.nspanel.data",
+                                       {{"device_id", this->api_device_id_},
+                                        {"nlui_driver_version", std::to_string(this->berry_driver_version_)}});
+      }
+#endif
+      break;
+    case 255:
+      App.scheduler.set_timeout(this, "nspanel_lovelace_flashnextion_upload", 100,
+                                [this, data]() { this->upload_tft(data); });
+      break;
+    default:
+      this->send_custom_command(data);
+      if (this->use_missed_updates_workaround_) delay(75);
+      break;
   }
 }
 
@@ -103,9 +136,19 @@ bool NSPanelLovelace::process_data_() {
 }
 
 void NSPanelLovelace::process_command_(const std::string &message) {
-  this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
-    root["CustomRecv"] = message;
-  });
+  if (this->use_api_) {
+#ifdef USE_API_HOMEASSISTANT_SERVICES
+    this->fire_homeassistant_event("esphome.nspanel.data",
+                                   {{"device_id", this->api_device_id_},
+                                    {"CustomRecv", message}});
+#endif
+  } else {
+#ifdef USE_MQTT
+    this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root) {
+      root["CustomRecv"] = message;
+    });
+#endif
+  }
   this->incoming_msg_callback_.call(message);
 }
 

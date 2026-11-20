@@ -47,12 +47,31 @@ nspanel_lovelace:
 There are several options you can use:
 
 - `id`: ID of the component used in lambdas
-- `mqtt_recv_topic`: change if you are using different `panelRecvTopic` in your AppDaemon config
-- `mqtt_send_topic`: change if you are using different `panelSendTopic` in your AppDaemon config
+- `connection`: `mqtt` (default) or `api` for the ESPHome native API
+- `mqtt_recv_topic`: change if you are using different `panelRecvTopic` in your backend configuration
+- `mqtt_send_topic`: change if you are using different `panelSendTopic` in your backend configuration
+- `api_device_id`: value used to route `esphome.nspanel.data` events (defaults to `mqtt_recv_topic`)
 - `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
 - `berry_driver_version`: version of the official Tasmota Berry driver version reported to AppDaemon backend. If set to `0`, automatic updates or notifications about them are effectively disabled. Defaults to `999`.
 - `use_missed_updates_workaround`: use workaround for [missed status updates](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8) - introduce short delay in internal ESPHome-NSPanel communication. Defaults to `true`, usually there should be no need to disable this option.
 - `update_baud_rate`: baud rate to use when updating the TFT firmware, defaults to `921600`. Set to `115200` if you encounter any issues during the updates.
+
+### Home Assistant API mode
+
+API mode does not require an MQTT broker:
+
+```yaml
+api:
+
+nspanel_lovelace:
+  id: nspanel
+  connection: api
+  api_device_id: "kitchen"
+```
+
+Set `api_device_id` to the panel's API device ID and `panelName` to the ESPHome device name. The backend calls `<panelName>_nspanelui_api_call`; received panel messages are emitted on `esphome.nspanel.data`.
+
+The service has `data` (string) and `command` (integer): `2` sends a custom display command, `1` reports the Lovelace UI driver version, and `255` starts a TFT upload.
 
 ### TFT firmware update
 
