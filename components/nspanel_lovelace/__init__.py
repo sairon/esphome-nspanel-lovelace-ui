@@ -103,8 +103,6 @@ async def to_code(config):
     else:
         api_device_id = config.get(CONF_API_DEVICE_ID, config[CONF_MQTT_RECV_TOPIC])
         cg.add(var.set_api_device_id(api_device_id))
-        cg.add_define("USE_API_CUSTOM_SERVICES")
-        cg.add_define("USE_API_USER_DEFINED_ACTIONS")
         cg.add_define("USE_API_HOMEASSISTANT_SERVICES")
 
     for conf in config.get(CONF_INCOMING_MSG, []):

@@ -62,6 +62,14 @@ API mode does not require an MQTT broker:
 
 ```yaml
 api:
+  actions:
+    - action: nspanelui_api_call
+      variables:
+        data: string
+        command: int
+      then:
+        - lambda: |-
+            id(nspanel).nspanelui_api_call(data, command);
 
 nspanel_lovelace:
   id: nspanel
@@ -80,12 +88,13 @@ be triggered from the Home Assistant when needed (make sure you have defined an 
 
 ```yaml
 api:
-  - service: upload_tft
-    variables:
-      url: string
-    then:
-      - lambda: |-
-          id(nspanel).upload_tft(url);
+  actions:
+    - action: upload_tft
+      variables:
+        url: string
+      then:
+        - lambda: |-
+            id(nspanel).upload_tft(url);
 ```
 
 ### Coexistence with Bluetooth components
@@ -108,7 +117,7 @@ esp32_ble_tracker:
 and then modify the `upload_tft` action to call the `stop_scan` action on it before the upload is started:
 
 ```yaml
-    - service: upload_tft
+    - action: upload_tft
       variables:
         url: string
       then:

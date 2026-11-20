@@ -3,7 +3,9 @@
 #include <utility>
 
 #include "esphome/core/defines.h"
-#include "esphome/components/api/custom_api_device.h"
+#ifdef USE_API
+#include "esphome/components/api/api_server.h"
+#endif
 #ifdef USE_MQTT
 #include "esphome/components/mqtt/mqtt_client.h"
 #endif
@@ -11,6 +13,7 @@
 #include "esphome/components/uart/uart_component_esp_idf.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
+#include "esphome/core/string_ref.h"
 
 #include <esp_http_client.h>
 
@@ -21,7 +24,7 @@
 namespace esphome {
 namespace nspanel_lovelace {
 
-class NSPanelLovelace : public Component, public uart::UARTDevice, public api::CustomAPIDevice {
+class NSPanelLovelace : public Component, public uart::UARTDevice {
  public:
   void setup() override;
   void loop() override;
@@ -42,8 +45,9 @@ class NSPanelLovelace : public Component, public uart::UARTDevice, public api::C
   void dump_config() override;
 
   void send_custom_command(const std::string &command);
+  void send_custom_command(const StringRef &command);
 
-  void nspanelui_api_call(std::string data, int32_t command);
+  void nspanelui_api_call(const StringRef &data, int32_t command);
 
   void add_incoming_msg_callback(std::function<void(std::string)> callback);
 
@@ -73,6 +77,9 @@ class NSPanelLovelace : public Component, public uart::UARTDevice, public api::C
 
   bool process_data_();
   void process_command_(const std::string &message);
+#ifdef USE_MQTT
+  std::string replace_topic_suffix_(const std::string &topic, const std::string &suffix) const;
+#endif
 
 #ifdef USE_MQTT
   mqtt::MQTTClientComponent *mqtt_{nullptr};

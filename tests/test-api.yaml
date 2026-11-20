@@ -23,6 +23,14 @@ uart:
     baud_rate: 115200
 
 api:
+  actions:
+    - action: nspanelui_api_call
+      variables:
+        data: string
+        command: int
+      then:
+        - lambda: |-
+            id(nspanel).nspanelui_api_call(data, command);
 
 nspanel_lovelace:
   id: nspanel

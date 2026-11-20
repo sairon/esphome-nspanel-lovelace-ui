@@ -1,4 +1,3 @@
-#include <regex>
 #include "nspanel_lovelace.h"
 
 #include "esphome/core/alloc_helpers.h"
@@ -218,8 +217,8 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
   if (!this->use_api_) {
     this->mqtt_->unsubscribe(this->send_topic_);
     if (this->berry_driver_version_ > 0) {
-      this->mqtt_->unsubscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"));
-      this->mqtt_->unsubscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"));
+      this->mqtt_->unsubscribe(replace_topic_suffix_(this->send_topic_, "GetDriverVersion"));
+      this->mqtt_->unsubscribe(replace_topic_suffix_(this->send_topic_, "FlashNextion"));
     }
   }
 #endif
