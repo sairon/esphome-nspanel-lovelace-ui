@@ -51,7 +51,7 @@ There are several options you can use:
 - `mqtt_recv_topic`: change if you are using different `panelRecvTopic` in your backend configuration
 - `mqtt_send_topic`: change if you are using different `panelSendTopic` in your backend configuration
 - `api_device_id`: value used to route `esphome.nspanel.data` events (defaults to `mqtt_recv_topic`)
-- `on_incoming_message`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
+- `on_incoming_msg`: action called when a message is received from the NSPanel firmware (e.g. on a touch event)
 - `on_before_tft_upload`: automation called once before any TFT upload starts, including manual uploads and backend update notifications
 - `berry_driver_version`: version of the official Tasmota Berry driver version reported to AppDaemon backend. If set to `0`, automatic updates or notifications about them are effectively disabled. Defaults to `999`.
 - `use_missed_updates_workaround`: use workaround for [missed status updates](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8) - introduce short delay in internal ESPHome-NSPanel communication. Defaults to `true`, usually there should be no need to disable this option.
@@ -93,9 +93,10 @@ nspanel_lovelace:
   connection: api
   api_device_id: "kitchen"
   on_before_tft_upload:
-    - esp32_ble_tracker.stop_scan:
-        id: ble_tracker
+    - esp32_ble_tracker.stop_scan: ble_tracker
 ```
+
+`on_before_tft_upload` is triggered centrally in `upload_tft()`, immediately after upload guards and before the Nextion reparse/reset and file transfer starts. It therefore runs for API, MQTT, backend `auto`/`auto-notify`, and manual upload paths.
 
 ### TFT firmware update
 
@@ -115,36 +116,41 @@ api:
 
 ### Coexistence with Bluetooth components
 
-There is a [known issue](https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/21) that some operations,
-especially the TFT firmware update, can become unreliable when components using Bluetooth are enabled
-(like [esp32_ble_tracker](https://esphome.io/components/esp32_ble_tracker.html) or its extension
-[bluetooth_proxy](https://esphome.io/components/bluetooth_proxy.html)). Generally it's recommended
-to disable the Web Server component and do a re-flash using the serial cable if the device was originally
-flashed using ESPHome version older than 2012.12.0. However, this doesn't fix the problem during the TFT update.
-A workaround is to stop the Bluetooth scanning before the upgrade is started. To do that, simply add an ID to
-the `esp32_ble_tracker` component (it's added implicitly with `bluetooth_proxy`, so if you don't have it in
-your configuration, just add it), e.g.:
+Some operations, especially TFT firmware updates, can become unreliable while components using Bluetooth are
+active ([esp32_ble_tracker](https://esphome.io/components/esp32_ble_tracker.html), including `bluetooth_proxy`).
+Automatic updates are now supported and should stop Bluetooth scanning through `on_before_tft_upload` before every
+TFT upload, including manual uploads and backend `auto` / `auto-notify` updates:
 
 ```yaml
 esp32_ble_tracker:
   id: ble_tracker
+
+nspanel_lovelace:
+  id: nspanel
+  on_before_tft_upload:
+    - esp32_ble_tracker.stop_scan: ble_tracker
 ```
 
-and then modify the `upload_tft` action to call the `stop_scan` action on it before the upload is started:
+The `on_before_tft_upload` trigger can stop scanning without making `nspanel_lovelace` depend on Bluetooth. It
+can therefore be omitted in configurations that do not use `esp32_ble_tracker` or `bluetooth_proxy`.
+
+As a last-resort workaround, you can still stop scanning manually in an individual upload action:
 
 ```yaml
+api:
+  actions:
     - action: upload_tft
       variables:
         url: string
       then:
+        - esp32_ble_tracker.stop_scan: ble_tracker
         - lambda: |-
-            id(ble_tracker).stop_scan();
             id(nspanel).upload_tft(url);
 ```
 
-Please note that the upgrade will still fail if it is performed from the on-screen notification about new
-firmware version. Unfortunately there is no easy fix for that, in that case it is recommended to avoid
-`auto` or `auto-notify` options for the `updateMode` in the backend configuration.
+For uploads initiated from an on-screen firmware notification, `on_before_tft_upload` also runs centrally,
+before the Nextion reparse/reset and file transfer starts. If you still encounter update failures, verify that
+Bluetooth scanning is stopped, Wi-Fi remains connected, and the TFT URL is reachable from the ESP32.
 
 ### Other functions
 
