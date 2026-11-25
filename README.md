@@ -78,7 +78,7 @@ nspanel_lovelace:
   api_device_id: "kitchen"
 ```
 
-Set `api_device_id` to the panel's API device ID and `panelName` to the ESPHome device name. The backend calls `<panelName>_nspanelui_api_call`; received panel messages are emitted on `esphome.nspanel.data`.
+For the standalone backend, set top-level `use_ha_api: true` in `panels.yaml`, set `panelRecvTopic` to `api_device_id`, and set `panelSendTopic` to the ESPHome device's Home Assistant service-name prefix. For AppDaemon, set `use_api: true`, `panelDeviceId` to `api_device_id`, and `panelName` to that service-name prefix in the panel's `config`. Both call `esphome.<prefix>_nspanelui_api_call` and receive `esphome.nspanel.data` events.
 
 The action has `data` (string) and `command` (integer): `2` sends a custom display command, `1` reports the Lovelace UI driver version, and `255` starts a TFT upload.
 

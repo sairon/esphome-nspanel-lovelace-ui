@@ -197,12 +197,12 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
     return;
   }
 
-  this->before_tft_upload_callback_.call();
-
   if (!network::is_connected()) {
     ESP_LOGD(TAG, "network is not connected");
     return;
   }
+
+  this->before_tft_upload_callback_.call();
 
   if (!this->reparse_mode_) {
     this->start_reparse_mode();

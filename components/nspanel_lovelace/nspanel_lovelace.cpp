@@ -13,9 +13,11 @@ static const char *const TAG = "nspanel_lovelace";
 std::string NSPanelLovelace::replace_topic_suffix_(const std::string &topic, const std::string &suffix) const {
   std::string result = topic;
   const std::string marker = "CustomSend";
-  const std::size_t position = result.find(marker);
-  if (position != std::string::npos)
+  std::size_t position = 0;
+  while ((position = result.find(marker, position)) != std::string::npos) {
     result.replace(position, marker.length(), suffix);
+    position += suffix.length();
+  }
   return result;
 }
 #endif
@@ -57,16 +59,16 @@ void NSPanelLovelace::nspanelui_api_call(const StringRef &data, int32_t command)
 #ifdef USE_API_HOMEASSISTANT_SERVICES
       if (this->berry_driver_version_ > 0) {
         api::HomeassistantActionRequest response;
-        response.service = esphome::ProgmemStringRef(esphome::StringRef("esphome.nspanel.data"));
+        response.service = decltype(response.service)(esphome::StringRef("esphome.nspanel.data"));
         response.is_event = true;
         response.data.init(2);
         auto &device_id = response.data.emplace_back();
-        device_id.key = esphome::ProgmemStringRef(esphome::StringRef("device_id"));
-        device_id.value = esphome::ProgmemStringRef(esphome::StringRef(this->api_device_id_));
+        device_id.key = decltype(device_id.key)(esphome::StringRef("device_id"));
+        device_id.value = decltype(device_id.value)(esphome::StringRef(this->api_device_id_));
         auto &version = response.data.emplace_back();
-        version.key = esphome::ProgmemStringRef(esphome::StringRef("nlui_driver_version"));
+        version.key = decltype(version.key)(esphome::StringRef("nlui_driver_version"));
         std::string version_value = std::to_string(this->berry_driver_version_);
-        version.value = esphome::ProgmemStringRef(esphome::StringRef(version_value));
+        version.value = decltype(version.value)(esphome::StringRef(version_value));
         if (api::global_api_server != nullptr)
           api::global_api_server->send_homeassistant_action(response);
       }
@@ -151,15 +153,15 @@ void NSPanelLovelace::process_command_(const std::string &message) {
   if (this->use_api_) {
 #ifdef USE_API_HOMEASSISTANT_SERVICES
     api::HomeassistantActionRequest response;
-    response.service = esphome::ProgmemStringRef(esphome::StringRef("esphome.nspanel.data"));
+    response.service = decltype(response.service)(esphome::StringRef("esphome.nspanel.data"));
     response.is_event = true;
     response.data.init(2);
     auto &device_id = response.data.emplace_back();
-    device_id.key = esphome::ProgmemStringRef(esphome::StringRef("device_id"));
-    device_id.value = esphome::ProgmemStringRef(esphome::StringRef(this->api_device_id_));
+    device_id.key = decltype(device_id.key)(esphome::StringRef("device_id"));
+    device_id.value = decltype(device_id.value)(esphome::StringRef(this->api_device_id_));
     auto &custom_recv = response.data.emplace_back();
-    custom_recv.key = esphome::ProgmemStringRef(esphome::StringRef("CustomRecv"));
-    custom_recv.value = esphome::ProgmemStringRef(esphome::StringRef(message));
+    custom_recv.key = decltype(custom_recv.key)(esphome::StringRef("CustomRecv"));
+    custom_recv.value = decltype(custom_recv.value)(esphome::StringRef(message));
     if (api::global_api_server != nullptr)
       api::global_api_server->send_homeassistant_action(response);
 #endif
@@ -201,7 +203,7 @@ void NSPanelLovelace::send_custom_command(const StringRef &command) {
   if (this->is_updating_)
     return; // don't execute custom commands - UI updates could spoil the upload
 
-  ESP_LOGD(TAG, "Sending custom command: %s", command.c_str());
+  ESP_LOGD(TAG, "Sending custom command: %.*s", static_cast<int>(command.size()), command.data());
   std::vector<uint8_t> data = {0x55, 0xBB};
   data.push_back(command.length() & 0xFF);
   data.push_back((command.length() >> 8) & 0xFF);

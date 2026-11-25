@@ -48,6 +48,9 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void send_custom_command(const StringRef &command);
 
   void nspanelui_api_call(const StringRef &data, int32_t command);
+  void nspanelui_api_call(const std::string &data, int32_t command) {
+    this->nspanelui_api_call(StringRef(data), command);
+  }
 
   void add_incoming_msg_callback(std::function<void(std::string)> callback);
   void add_before_tft_upload_callback(std::function<void()> callback);

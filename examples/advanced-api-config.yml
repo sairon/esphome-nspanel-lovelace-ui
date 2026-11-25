@@ -57,12 +57,20 @@ api:
         - lambda: 'id(nspanel).send_custom_command("wake");'
     - action: show_screensaver
       then:
-        - lambda: 'id(nspanel).send_custom_command("event~sleepReached~cardGrid");'
+        - homeassistant.event:
+            event: esphome.nspanel.data
+            data:
+              device_id: $devicename
+              CustomRecv: "event,sleepReached,cardGrid"
     - action: navigate_to_page
       variables:
         page: string
       then:
-        - lambda: 'id(nspanel).send_custom_command("event~buttonPress2~navigate." + page + "~button");'
+        - homeassistant.event:
+            event: esphome.nspanel.data
+            data:
+              device_id: $devicename
+              CustomRecv: !lambda 'return "event,buttonPress2,navigate." + page + ",button";'
     - action: disable_screensaver
       then:
         - lambda: 'id(nspanel).send_custom_command("timeout~0");'
@@ -161,7 +169,11 @@ switch:
     on_turn_on:
       - lambda: 'id(nspanel).send_custom_command("pageType~popupLight~Light 1~light.bed_light");'
     on_turn_off:
-      - lambda: 'id(nspanel).send_custom_command("event~sleepReached~cardGrid");'
+      - homeassistant.event:
+          event: esphome.nspanel.data
+          data:
+            device_id: $devicename
+            CustomRecv: "event,sleepReached,cardGrid"
 
   - platform: gpio
     name: $friendly_devicename Relay 2
@@ -171,7 +183,11 @@ switch:
     on_turn_on:
       - lambda: 'id(nspanel).send_custom_command("pageType~popupLight~Light 2~light.bed_light2");'
     on_turn_off:
-      - lambda: 'id(nspanel).send_custom_command("event~sleepReached~cardGrid");'
+      - homeassistant.event:
+          event: esphome.nspanel.data
+          data:
+            device_id: $devicename
+            CustomRecv: "event,sleepReached,cardGrid"
 
   - platform: gpio
     name: Screen Power
