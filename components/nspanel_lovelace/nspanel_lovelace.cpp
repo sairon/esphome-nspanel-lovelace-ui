@@ -1,4 +1,3 @@
-#include <regex>
 #include "nspanel_lovelace.h"
 
 #include "esphome/core/application.h"
@@ -10,33 +9,81 @@ namespace nspanel_lovelace {
 
 static const char *const TAG = "nspanel_lovelace";
 
+#ifdef USE_MQTT
+std::string NSPanelLovelace::replace_topic_suffix_(const std::string &topic, const std::string &suffix) const {
+  std::string result = topic;
+  const std::string marker = "CustomSend";
+  std::size_t position = 0;
+  while ((position = result.find(marker, position)) != std::string::npos) {
+    result.replace(position, marker.length(), suffix);
+    position += suffix.length();
+  }
+  return result;
+}
+#endif
+
 void NSPanelLovelace::setup() {
-  this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
-    this->send_custom_command(payload);
-    // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
-    if (this->use_missed_updates_workaround_) delay(75);
-  });
+#ifdef USE_MQTT
+  if (!this->use_api_) {
+    this->mqtt_->subscribe(this->send_topic_, [this](const std::string &topic, const std::string &payload) {
+      this->send_custom_command(payload);
+      // workaround for https://github.com/sairon/esphome-nspanel-lovelace-ui/issues/8
+      if (this->use_missed_updates_workaround_) delay(75);
+    });
 
-  if (this->berry_driver_version_ > 0) {
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
-                               root["nlui_driver_version"] = this->berry_driver_version_;
+    if (this->berry_driver_version_ > 0) {
+      this->mqtt_->subscribe(replace_topic_suffix_(this->send_topic_, "GetDriverVersion"),
+                             [this](const std::string &topic, const std::string &payload) {
+                               this->mqtt_->publish_json(this->recv_topic_, [this](ArduinoJson::JsonObject root) {
+                                 root["nlui_driver_version"] = this->berry_driver_version_;
+                               });
                              });
-                           });
 
-    this->mqtt_->subscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"),
-                           [this](const std::string &topic, const std::string &payload) {
-                             ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+      this->mqtt_->subscribe(replace_topic_suffix_(this->send_topic_, "FlashNextion"),
+                             [this](const std::string &topic, const std::string &payload) {
+                               ESP_LOGD(TAG, "FlashNextion called with URL '%s'", payload.c_str());
+                               App.scheduler.set_timeout(
+                                   this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
+                                     ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
+                                     this->upload_tft(payload);
+                                   });
+                             });
+    }
+  }
+#endif
+}
 
-                             // Calling upload_tft in MQTT callback directly would crash ESPHome - using a scheduler
-                             // task avoids that. Maybe there is another way?
-                             App.scheduler.set_timeout(
-                                 this, "nspanel_lovelace_flashnextion_upload", 100, [this, payload]() {
-                                   ESP_LOGD(TAG, "Starting FlashNextion with URL '%s'", payload.c_str());
-                                   this->upload_tft(payload);
-                                 });
-                           });
+void NSPanelLovelace::nspanelui_api_call(const StringRef &data, int32_t command) {
+  switch (command) {
+    case 1:
+#ifdef USE_API_HOMEASSISTANT_SERVICES
+      if (this->berry_driver_version_ > 0) {
+        api::HomeassistantActionRequest response;
+        response.service = decltype(response.service)(esphome::StringRef("esphome.nspanel.data"));
+        response.is_event = true;
+        response.data.init(2);
+        auto &device_id = response.data.emplace_back();
+        device_id.key = decltype(device_id.key)(esphome::StringRef("device_id"));
+        device_id.value = decltype(device_id.value)(esphome::StringRef(this->api_device_id_));
+        auto &version = response.data.emplace_back();
+        version.key = decltype(version.key)(esphome::StringRef("nlui_driver_version"));
+        std::string version_value = std::to_string(this->berry_driver_version_);
+        version.value = decltype(version.value)(esphome::StringRef(version_value));
+        if (api::global_api_server != nullptr)
+          api::global_api_server->send_homeassistant_action(response);
+      }
+#endif
+      break;
+    case 255: {
+      std::string url = data.str();
+      App.scheduler.set_timeout(this, "nspanel_lovelace_flashnextion_upload", 100,
+                                [this, url = std::move(url)]() { this->upload_tft(url); });
+      break;
+    }
+    default:
+      this->send_custom_command(data);
+      if (this->use_missed_updates_workaround_) delay(75);
+      break;
   }
 }
 
@@ -103,9 +150,28 @@ bool NSPanelLovelace::process_data_() {
 }
 
 void NSPanelLovelace::process_command_(const std::string &message) {
-  this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root){
-    root["CustomRecv"] = message;
-  });
+  if (this->use_api_) {
+#ifdef USE_API_HOMEASSISTANT_SERVICES
+    api::HomeassistantActionRequest response;
+    response.service = decltype(response.service)(esphome::StringRef("esphome.nspanel.data"));
+    response.is_event = true;
+    response.data.init(2);
+    auto &device_id = response.data.emplace_back();
+    device_id.key = decltype(device_id.key)(esphome::StringRef("device_id"));
+    device_id.value = decltype(device_id.value)(esphome::StringRef(this->api_device_id_));
+    auto &custom_recv = response.data.emplace_back();
+    custom_recv.key = decltype(custom_recv.key)(esphome::StringRef("CustomRecv"));
+    custom_recv.value = decltype(custom_recv.value)(esphome::StringRef(message));
+    if (api::global_api_server != nullptr)
+      api::global_api_server->send_homeassistant_action(response);
+#endif
+  } else {
+#ifdef USE_MQTT
+    this->mqtt_->publish_json(this->recv_topic_, [message](ArduinoJson::JsonObject root) {
+      root["CustomRecv"] = message;
+    });
+#endif
+  }
   this->incoming_msg_callback_.call(message);
 }
 
@@ -113,7 +179,14 @@ void NSPanelLovelace::add_incoming_msg_callback(std::function<void(std::string)>
   this->incoming_msg_callback_.add(std::move(callback));
 }
 
-void NSPanelLovelace::dump_config() { ESP_LOGCONFIG(TAG, "NSPanelLovelace:"); }
+void NSPanelLovelace::add_before_tft_upload_callback(std::function<void()> callback) {
+  this->before_tft_upload_callback_.add(std::move(callback));
+}
+
+void NSPanelLovelace::dump_config() {
+  ESP_LOGCONFIG(TAG, "NSPanelLovelace:");
+  ESP_LOGCONFIG(TAG, "  Connection mode: %s", this->use_api_ ? "API" : "MQTT");
+}
 
 void NSPanelLovelace::send_nextion_command(const std::string &command) {
   ESP_LOGD(TAG, "Sending: %s", command.c_str());
@@ -123,10 +196,14 @@ void NSPanelLovelace::send_nextion_command(const std::string &command) {
 }
 
 void NSPanelLovelace::send_custom_command(const std::string &command) {
+  this->send_custom_command(StringRef(command));
+}
+
+void NSPanelLovelace::send_custom_command(const StringRef &command) {
   if (this->is_updating_)
     return; // don't execute custom commands - UI updates could spoil the upload
 
-  ESP_LOGD(TAG, "Sending custom command: %s", command.c_str());
+  ESP_LOGD(TAG, "Sending custom command: %.*s", static_cast<int>(command.size()), command.c_str());
   std::vector<uint8_t> data = {0x55, 0xBB};
   data.push_back(command.length() & 0xFF);
   data.push_back((command.length() >> 8) & 0xFF);

@@ -2,12 +2,18 @@
 
 #include <utility>
 
+#include "esphome/core/defines.h"
+#ifdef USE_API
+#include "esphome/components/api/api_server.h"
+#endif
+#ifdef USE_MQTT
 #include "esphome/components/mqtt/mqtt_client.h"
+#endif
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/uart/uart_component_esp_idf.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
-#include "esphome/core/defines.h"
+#include "esphome/core/string_ref.h"
 
 #include <esp_http_client.h>
 
@@ -23,7 +29,11 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void setup() override;
   void loop() override;
 
+#ifdef USE_MQTT
   void set_mqtt(mqtt::MQTTClientComponent *parent) { mqtt_ = parent; }
+#endif
+  void set_connection(bool use_api) { use_api_ = use_api; }
+  void set_api_device_id(const std::string &device_id) { api_device_id_ = device_id; }
   void set_recv_topic(const std::string &topic) { recv_topic_ = topic; }
   void set_send_topic(const std::string &topic) { send_topic_ = topic; }
   void set_berry_driver_version(unsigned int value) { berry_driver_version_ = value; }
@@ -35,8 +45,15 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   void dump_config() override;
 
   void send_custom_command(const std::string &command);
+  void send_custom_command(const StringRef &command);
+
+  void nspanelui_api_call(const StringRef &data, int32_t command);
+  void nspanelui_api_call(const std::string &data, int32_t command) {
+    this->nspanelui_api_call(StringRef(data), command);
+  }
 
   void add_incoming_msg_callback(std::function<void(std::string)> callback);
+  void add_before_tft_upload_callback(std::function<void()> callback);
 
   void send_nextion_command(const std::string &command);
 
@@ -64,8 +81,15 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
 
   bool process_data_();
   void process_command_(const std::string &message);
+#ifdef USE_MQTT
+  std::string replace_topic_suffix_(const std::string &topic, const std::string &suffix) const;
+#endif
 
-  mqtt::MQTTClientComponent *mqtt_;
+#ifdef USE_MQTT
+  mqtt::MQTTClientComponent *mqtt_{nullptr};
+#endif
+  bool use_api_{false};
+  std::string api_device_id_;
   std::string recv_topic_;
   std::string send_topic_;
   unsigned int berry_driver_version_;
@@ -73,6 +97,7 @@ class NSPanelLovelace : public Component, public uart::UARTDevice {
   unsigned int update_baud_rate_;
 
   CallbackManager<void(std::string)> incoming_msg_callback_;
+  CallbackManager<void()> before_tft_upload_callback_;
 
   std::vector<uint8_t> buffer_;
 

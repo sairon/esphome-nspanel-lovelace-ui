@@ -1,4 +1,3 @@
-#include <regex>
 #include "nspanel_lovelace.h"
 
 #include "esphome/core/alloc_helpers.h"
@@ -203,6 +202,8 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
     return;
   }
 
+  this->before_tft_upload_callback_.call();
+
   if (!this->reparse_mode_) {
     this->start_reparse_mode();
   }
@@ -212,13 +213,17 @@ void NSPanelLovelace::upload_tft(const std::string &url) {
 
   this->is_updating_ = true;
 
-  // Unsubscribe so incoming MQTT messages don't consume heap needed by the upload.
-  // The device restarts when the upload ends, so the subscriptions are never restored.
-  this->mqtt_->unsubscribe(this->send_topic_);
-  if (this->berry_driver_version_ > 0) {
-    this->mqtt_->unsubscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "GetDriverVersion"));
-    this->mqtt_->unsubscribe(std::regex_replace(this->send_topic_, std::regex("CustomSend"), "FlashNextion"));
+  // Unsubscribe in MQTT mode so incoming messages don't consume heap needed by the upload.
+  // The device restarts when the upload ends, so subscriptions are never restored.
+#ifdef USE_MQTT
+  if (!this->use_api_) {
+    this->mqtt_->unsubscribe(this->send_topic_);
+    if (this->berry_driver_version_ > 0) {
+      this->mqtt_->unsubscribe(replace_topic_suffix_(this->send_topic_, "GetDriverVersion"));
+      this->mqtt_->unsubscribe(replace_topic_suffix_(this->send_topic_, "FlashNextion"));
+    }
   }
+#endif
 
   this->init_upload(url);
 

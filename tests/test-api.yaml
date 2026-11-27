@@ -1,0 +1,43 @@
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [nspanel_lovelace]
+
+esphome:
+  name: nspanel-api-ci
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: ci-ssid
+  password: ci-password
+
+uart:
+  - id: tf_uart
+    tx_pin: 16
+    rx_pin: 17
+    baud_rate: 115200
+
+api:
+  actions:
+    - action: nspanelui_api_call
+      variables:
+        data: string
+        command: int
+      then:
+        - lambda: |-
+            id(nspanel).nspanelui_api_call(data, command);
+
+nspanel_lovelace:
+  id: nspanel
+  connection: api
+  api_device_id: nspanel-api-ci
+  on_before_tft_upload:
+    - lambda: |-
+        ESP_LOGI("test", "Before TFT upload");
+
+logger:

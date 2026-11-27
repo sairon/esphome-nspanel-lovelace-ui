@@ -16,5 +16,12 @@ class NSPanelLovelaceMsgIncomingTrigger : public Trigger<std::string> {
   }
 };
 
+class NSPanelLovelaceBeforeTftUploadTrigger : public Trigger<> {
+ public:
+  explicit NSPanelLovelaceBeforeTftUploadTrigger(NSPanelLovelace *parent) {
+    parent->add_before_tft_upload_callback([this]() { this->trigger(); });
+  }
+};
+
 }  // namespace nspanel_lovelace
 }  // namespace esphome
